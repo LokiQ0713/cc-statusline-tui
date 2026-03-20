@@ -64,29 +64,40 @@ pub fn run() {
         i18n::set_lang(&config.lang);
     }
 
-    // Step 0b: Mode selection (defaults vs custom)
-    show_header(&config, t("step.start"));
-    let mode_opts = vec![
-        select::SelectOption {
-            value: "defaults".into(),
-            label: t("mode.defaults").into(),
-            hint: Some(t("mode.defaultsHint").into()),
-        },
-        select::SelectOption {
-            value: "custom".into(),
-            label: t("mode.custom").into(),
-            hint: Some(t("mode.customHint").into()),
-        },
-    ];
-    match select::select(t("mode.prompt"), &mode_opts, Some("defaults"), &mut |_| {}) {
-        select::SelectResult::Selected(v) if v == "defaults" => {
-            let defaults = Config { lang: config.lang.clone(), ..Config::default() };
-            do_save(&defaults);
-            return;
-        }
-        select::SelectResult::Selected(_) => { /* continue to custom */ }
-        _ => {
-            std::process::exit(0);
+    // Step 0b: Mode selection (defaults vs custom) — loop to support Back
+    loop {
+        show_header(&config, t("step.start"));
+        let mode_opts = vec![
+            select::SelectOption {
+                value: "defaults".into(),
+                label: t("mode.defaults").into(),
+                hint: Some(t("mode.defaultsHint").into()),
+            },
+            select::SelectOption {
+                value: "custom".into(),
+                label: t("mode.custom").into(),
+                hint: Some(t("mode.customHint").into()),
+            },
+        ];
+        match select::select(t("mode.prompt"), &mode_opts, Some("defaults"), &mut |_| {}) {
+            select::SelectResult::Selected(v) if v == "defaults" => {
+                let defaults = Config { lang: config.lang.clone(), ..Config::default() };
+                show_header(&defaults, t("step.confirm"));
+                match confirm::confirm(t("prompt.saveDefaults"), true) {
+                    confirm::ConfirmResult::Yes => {
+                        do_save(&defaults);
+                        return;
+                    }
+                    confirm::ConfirmResult::Cancelled => {
+                        std::process::exit(0);
+                    }
+                    _ => continue, // Back or No — go back to mode selection
+                }
+            }
+            select::SelectResult::Selected(_) => break, // custom mode — continue to steps
+            _ => {
+                std::process::exit(0);
+            }
         }
     }
 
