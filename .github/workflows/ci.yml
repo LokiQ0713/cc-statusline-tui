@@ -9,16 +9,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18, 20, 22]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-      - run: npm install
-      - name: Syntax check
-        run: node --check cli.js config.js styles.js generator.js i18n.js
-      - name: Module load check
-        run: node -e "import('./config.js')"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check
+      - run: cargo test
+      - run: cargo clippy -- -D warnings
