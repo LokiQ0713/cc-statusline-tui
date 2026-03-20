@@ -40,13 +40,11 @@ pub fn render_step_progress(steps: &[StepInfo], current_idx: usize) -> String {
     let mut lines: Vec<String> = Vec::new();
 
     for (i, step) in steps.iter().enumerate() {
-        let step_num = format!("{}/{}", i + 1, total);
-
         if i < current_idx {
             // Completed step: dim green ●
             lines.push(render_step_line(
                 "\u{25CF}",
-                &format!("{} {}", step_num, step.label),
+                &step.label,
                 GREEN,
             ));
             // Show summary if present
@@ -59,7 +57,7 @@ pub fn render_step_progress(steps: &[StepInfo], current_idx: usize) -> String {
             // Current step: bright cyan ◆
             lines.push(render_step_line(
                 "\u{25C6}",
-                &format!("{} {}", step_num, step.label),
+                &step.label,
                 BRIGHT_CYAN,
             ));
             // Connector line (unless last step)
@@ -70,7 +68,7 @@ pub fn render_step_progress(steps: &[StepInfo], current_idx: usize) -> String {
             // Pending step: dim ○
             lines.push(render_step_line(
                 "\u{25CB}",
-                &format!("{} {}", step_num, step.label),
+                &step.label,
                 DIM,
             ));
             // Connector line (unless last step)
@@ -92,19 +90,19 @@ mod tests {
     fn make_steps() -> Vec<StepInfo> {
         vec![
             StepInfo {
-                label: "Select segments".into(),
+                label: "1/4 Select segments".into(),
                 summary: None,
             },
             StepInfo {
-                label: "Configure".into(),
+                label: "2/4 Configure".into(),
                 summary: None,
             },
             StepInfo {
-                label: "Reorder".into(),
+                label: "3/4 Reorder".into(),
                 summary: None,
             },
             StepInfo {
-                label: "Confirm".into(),
+                label: "4/4 Confirm".into(),
                 summary: None,
             },
         ]

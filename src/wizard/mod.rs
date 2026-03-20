@@ -97,7 +97,7 @@ pub fn run() {
             summary: None,
         },
         step_progress::StepInfo {
-            label: "2/4 Configure".to_string(), // updated dynamically
+            label: tf("step.configSegment", &["1", "?"]),
             summary: None,
         },
         step_progress::StepInfo {

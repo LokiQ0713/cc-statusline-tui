@@ -39,7 +39,8 @@ pub fn render_preview(config: &Config) -> String {
 /// moving the main cursor.
 pub fn update_preview_in_place(config: &Config, preview_row: u16) {
     let preview = render_preview(config);
-    let text = format!("  \x1b[2mPreview:\x1b[0m {}", preview);
+    let label = crate::i18n::t("msg.preview");
+    let text = format!("  \x1b[2m{}\x1b[0m {}", label, preview);
     super::terminal::print_at(preview_row, &text);
 }
 
