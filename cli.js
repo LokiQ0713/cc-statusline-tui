@@ -8,7 +8,7 @@ const bin = join(homedir(), '.claude', 'statusline', 'bin', 'cc-statusline');
 
 if (!existsSync(bin)) {
   console.error('cc-statusline binary not found at', bin);
-  console.error('Try reinstalling: npm install -g cc-statusline');
+  console.error('Try reinstalling: npm install -g cc-statusline-tui');
   process.exit(1);
 }
 

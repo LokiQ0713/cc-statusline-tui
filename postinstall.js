@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const REPO = 'LokiQ0713/cc-statusline';
+const REPO = 'LokiQ0713/cc-statusline-tui';
 const BIN_NAME = 'cc-statusline';
 const VERSION = require('./package.json').version;
 

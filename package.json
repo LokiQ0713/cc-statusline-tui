@@ -1,5 +1,5 @@
 {
-  "name": "cc-statusline",
+  "name": "cc-statusline-tui",
   "version": "2.0.7",
   "description": "Interactive CLI tool to configure Claude Code statusline",
   "bin": {
@@ -14,11 +14,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/LokiQ0713/cc-statusline.git"
+    "url": "https://github.com/LokiQ0713/cc-statusline-tui.git"
   },
-  "homepage": "https://github.com/LokiQ0713/cc-statusline",
+  "homepage": "https://github.com/LokiQ0713/cc-statusline-tui",
   "bugs": {
-    "url": "https://github.com/LokiQ0713/cc-statusline/issues"
+    "url": "https://github.com/LokiQ0713/cc-statusline-tui/issues"
   },
   "keywords": [
     "cli",

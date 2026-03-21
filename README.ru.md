@@ -1,8 +1,9 @@
 # cc-statusline
 
-[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
+[![CI](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline-tui)](https://www.npmjs.com/package/cc-statusline-tui)
+[![crates.io](https://img.shields.io/crates/v/cc-statusline-tui)](https://crates.io/crates/cc-statusline-tui)
 
 > Статусная строка Claude Code скучная. Давайте это исправим.
 
@@ -19,13 +20,19 @@
 ### npm
 
 ```bash
-npx cc-statusline
+npx cc-statusline-tui
+```
+
+### Cargo
+
+```bash
+cargo install cc-statusline-tui
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/cc-statusline
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 ```
 
@@ -108,7 +115,8 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # Удалить через пакетный менеджер
-npm uninstall -g cc-statusline
+npm uninstall -g cc-statusline-tui
+# или: cargo uninstall cc-statusline-tui
 # или: brew uninstall cc-statusline
 ```
 
@@ -116,14 +124,14 @@ npm uninstall -g cc-statusline
 
 | Проблема | Решение |
 |----------|---------|
-| "Binary not found" | Запусти `npx cc-statusline` ещё раз для повторной загрузки |
+| "Binary not found" | Запусти `npx cc-statusline-tui` ещё раз для повторной загрузки |
 | Ошибка "Is a directory" | Проверь, что `~/.claude/statusline/bin/cc-statusline` — это файл, а не директория |
 | Crypto не отображается | Удали директорию `/tmp/claude-statusline-crypto-lock`, если она существует (устаревшая блокировка) |
 | Изменения не видны | Перезапусти Claude Code после сохранения настроек |
 
 ## Участие в проекте
 
-Нашёл баг? Хочешь фичу? [Создай issue](https://github.com/LokiQ0713/cc-statusline/issues). PR приветствуются.
+Нашёл баг? Хочешь фичу? [Создай issue](https://github.com/LokiQ0713/cc-statusline-tui/issues). PR приветствуются.
 
 ## License
 

@@ -1,13 +1,19 @@
 [package]
-name = "cc-statusline"
+name = "cc-statusline-tui"
 version = "2.0.7"
 edition = "2021"
 description = "Interactive CLI tool to configure Claude Code statusline"
 license = "MIT"
-repository = "https://github.com/LokiQ0713/cc-statusline"
+repository = "https://github.com/LokiQ0713/cc-statusline-tui"
 authors = ["LokiQ0713"]
-homepage = "https://github.com/LokiQ0713/cc-statusline"
+homepage = "https://github.com/LokiQ0713/cc-statusline-tui"
 keywords = ["cli", "statusline", "claude", "terminal", "tui"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+
+[[bin]]
+name = "cc-statusline"
+path = "src/main.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

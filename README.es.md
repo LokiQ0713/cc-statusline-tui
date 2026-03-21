@@ -1,8 +1,9 @@
 # cc-statusline
 
-[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
+[![CI](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline-tui)](https://www.npmjs.com/package/cc-statusline-tui)
+[![crates.io](https://img.shields.io/crates/v/cc-statusline-tui)](https://crates.io/crates/cc-statusline-tui)
 
 > Tu barra de estado de Claude Code es aburrida. Vamos a arreglar eso.
 
@@ -19,13 +20,19 @@ Elige tu veneno:
 ### npm
 
 ```bash
-npx cc-statusline
+npx cc-statusline-tui
+```
+
+### Cargo
+
+```bash
+cargo install cc-statusline-tui
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/cc-statusline
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 ```
 
@@ -108,7 +115,8 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # Desinstalar del gestor de paquetes
-npm uninstall -g cc-statusline
+npm uninstall -g cc-statusline-tui
+# o: cargo uninstall cc-statusline-tui
 # o: brew uninstall cc-statusline
 ```
 
@@ -116,14 +124,14 @@ npm uninstall -g cc-statusline
 
 | Problema | Solución |
 |----------|----------|
-| "Binary not found" | Ejecuta `npx cc-statusline` de nuevo para volver a descargar |
+| "Binary not found" | Ejecuta `npx cc-statusline-tui` de nuevo para volver a descargar |
 | Error "Is a directory" | Verifica que `~/.claude/statusline/bin/cc-statusline` sea un archivo, no un directorio |
 | Crypto no se muestra | Elimina el directorio `/tmp/claude-statusline-crypto-lock` si existe (bloqueo obsoleto) |
 | Los cambios no se ven | Reinicia Claude Code después de guardar la configuración |
 
 ## Contribuir
 
-¿Encontraste un bug? ¿Quieres una feature? [Abre un issue](https://github.com/LokiQ0713/cc-statusline/issues). Los PRs son bienvenidos.
+¿Encontraste un bug? ¿Quieres una feature? [Abre un issue](https://github.com/LokiQ0713/cc-statusline-tui/issues). Los PRs son bienvenidos.
 
 ## License
 

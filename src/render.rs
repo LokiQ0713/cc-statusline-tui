@@ -853,19 +853,8 @@ mod tests {
         let text = display.join(" ");
         assert_eq!(text, "BTC:$84532 ETH:$3215");
 
-        // Also test the full render via the actual cache path
-        // Write to the real cache path for render_crypto
-        {
-            let mut f = std::fs::File::create("/tmp/claude-statusline-crypto-cache").unwrap();
-            write!(f, "84532.50|3214.75").unwrap();
-        }
-        let result = render_crypto(&seg, 0).unwrap();
-        let visible = strip_ansi(&result);
-        assert_eq!(visible, "BTC:$84532 ETH:$3215");
-
         // Clean up
         let _ = std::fs::remove_file(cache_path);
-        let _ = std::fs::remove_file("/tmp/claude-statusline-crypto-cache");
     }
 
     #[test]

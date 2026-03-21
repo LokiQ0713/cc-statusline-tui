@@ -8,7 +8,7 @@
 ```bash
 # Download latest binary (macOS ARM example)
 VERSION=2.0.4
-curl -sL "https://github.com/LokiQ0713/cc-statusline/releases/download/v${VERSION}/cc-statusline-aarch64-apple-darwin.tar.gz" | tar xz -C /tmp/
+curl -sL "https://github.com/LokiQ0713/cc-statusline-tui/releases/download/v${VERSION}/cc-statusline-aarch64-apple-darwin.tar.gz" | tar xz -C /tmp/
 chmod +x /tmp/cc-statusline
 BINARY=/tmp/cc-statusline
 ```
@@ -179,14 +179,21 @@ echo '' | $BINARY --render
 ### TC-9.1: npm install + postinstall downloads binary
 ```bash
 rm -rf ~/.claude/statusline/bin
-npm install -g cc-statusline@latest
+npm install -g cc-statusline-tui@latest
 ls ~/.claude/statusline/bin/cc-statusline
 ```
 - **Expected**: Binary exists, is executable
 
-### TC-9.2: brew tap + install
+### TC-9.2: cargo install
 ```bash
-brew tap LokiQ0713/cc-statusline
+cargo install cc-statusline-tui
+which cc-statusline
+```
+- **Expected**: Binary available in PATH
+
+### TC-9.3: brew tap + install
+```bash
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 which cc-statusline
 ```

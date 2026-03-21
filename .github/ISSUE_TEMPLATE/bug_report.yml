@@ -16,7 +16,7 @@ body:
       label: Steps to Reproduce
       description: Minimal steps to reproduce the issue.
       placeholder: |
-        1. Run `npx cc-statusline`
+        1. Run `npx cc-statusline-tui`
         2. Select ...
         3. ...
     validations:
@@ -45,7 +45,7 @@ body:
     id: install-method
     attributes:
       label: Install Method
-      placeholder: "npm / brew"
+      placeholder: "npm / cargo / brew"
     validations:
       required: true
 

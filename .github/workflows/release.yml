@@ -73,8 +73,9 @@ jobs:
           cat > /tmp/release-notes.md << 'EOF'
           ## Install
 
-          - **npm**: `npx cc-statusline`
-          - **brew**: `brew tap LokiQ0713/cc-statusline && brew install cc-statusline`
+          - **npm**: `npx cc-statusline-tui`
+          - **cargo**: `cargo install cc-statusline-tui`
+          - **brew**: `brew tap LokiQ0713/cc-statusline-tui && brew install cc-statusline`
           EOF
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
@@ -95,3 +96,14 @@ jobs:
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-crate:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

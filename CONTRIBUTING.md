@@ -1,11 +1,11 @@
-# Contributing to cc-statusline
+# Contributing to cc-statusline-tui
 
 ## Development Setup
 
 Prerequisites: Rust toolchain (stable).
 
 ```bash
-git clone https://github.com/LokiQ0713/cc-statusline.git
+git clone https://github.com/LokiQ0713/cc-statusline-tui.git
 cd cc-statusline
 cargo build
 ```
@@ -41,7 +41,7 @@ echo '{"tool_name":"Read","model":"claude-sonnet-4-20250514"}' | cargo run -- --
 Include:
 
 - Operating system and version
-- Install method (npm / brew)
+- Install method (npm / cargo / brew)
 - Tool version (`cc-statusline --version`)
 - Steps to reproduce
 - Expected vs actual behavior

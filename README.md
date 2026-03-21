@@ -1,8 +1,9 @@
 # cc-statusline
 
-[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
+[![CI](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline-tui)](https://www.npmjs.com/package/cc-statusline-tui)
+[![crates.io](https://img.shields.io/crates/v/cc-statusline-tui)](https://crates.io/crates/cc-statusline-tui)
 
 > Your Claude Code statusline is boring. Let's fix that.
 
@@ -19,13 +20,19 @@ Pick your poison:
 ### npm
 
 ```bash
-npx cc-statusline
+npx cc-statusline-tui
+```
+
+### Cargo
+
+```bash
+cargo install cc-statusline-tui
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/cc-statusline
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 ```
 
@@ -82,7 +89,7 @@ Re-running the wizard loads your existing config as defaults. Non-destructive. P
 ## Requirements
 
 - Claude Code installed (`~/.claude/` exists)
-- Node.js ≥ 18 (only for `npx` install — not needed at runtime)
+- Node.js ≥ 18 (only for `npx` install — not needed at runtime or for `cargo install`)
 
 ## Security and Privacy
 
@@ -106,7 +113,8 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # Uninstall from package manager
-npm uninstall -g cc-statusline
+npm uninstall -g cc-statusline-tui
+# or: cargo uninstall cc-statusline-tui
 # or: brew uninstall cc-statusline
 ```
 
@@ -114,14 +122,14 @@ npm uninstall -g cc-statusline
 
 | Problem | Fix |
 |---------|-----|
-| "Binary not found" | Run `npx cc-statusline` again to re-download |
+| "Binary not found" | Run `npx cc-statusline-tui` again to re-download |
 | "Is a directory" error | Check that `~/.claude/statusline/bin/cc-statusline` is a file, not a directory |
 | Crypto not showing | Delete `/tmp/claude-statusline-crypto-lock` directory if it exists (stale lock) |
 | Changes not visible | Restart Claude Code after saving configuration |
 
 ## Contributing
 
-Found a bug? Want a feature? [Open an issue](https://github.com/LokiQ0713/cc-statusline/issues). PRs welcome.
+Found a bug? Want a feature? [Open an issue](https://github.com/LokiQ0713/cc-statusline-tui/issues). PRs welcome.
 
 ## License
 

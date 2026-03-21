@@ -1,13 +1,13 @@
-# cc-statusline
+# cc-statusline-tui
 
 Interactive CLI tool to configure the Claude Code statusline.
 
 ## Project Info
 
-- Package: `cc-statusline`
-- GitHub: `https://github.com/LokiQ0713/cc-statusline`
-- Registry: npm public registry (ships prebuilt Rust binaries via npm postinstall)
-- Install: `npx cc-statusline`
+- Package: `cc-statusline-tui`
+- GitHub: `https://github.com/LokiQ0713/cc-statusline-tui`
+- Registry: npm public registry (ships prebuilt Rust binaries via npm postinstall) + crates.io
+- Install: `npx cc-statusline-tui` or `cargo install cc-statusline-tui`
 
 ## Tech Stack
 
@@ -94,13 +94,16 @@ git push origin main --tags
 
 ```bash
 # Check GitHub Actions status
-gh run list --repo LokiQ0713/cc-statusline --workflow=release.yml --limit 3
+gh run list --repo LokiQ0713/cc-statusline-tui --workflow=release.yml --limit 3
 
 # Check npm registry
-npm view cc-statusline version
+npm view cc-statusline-tui version
+
+# Check crates.io
+cargo search cc-statusline-tui
 
 # Check GitHub Release was created
-gh release list --repo LokiQ0713/cc-statusline
+gh release list --repo LokiQ0713/cc-statusline-tui
 ```
 
 ### Troubleshooting publish failures
@@ -110,12 +113,13 @@ gh release list --repo LokiQ0713/cc-statusline
 | `ENEEDAUTH` | `NPM_TOKEN` secret missing or invalid | Add/update token in GitHub repo Settings → Secrets → Actions |
 | `E403 previously published` | Version already exists on npm | Bump version again with `npm version patch` |
 | GitHub Release not created | `contents: write` permission missing | Check `release.yml` has `permissions: contents: write` |
+| crates.io publish failed | `CARGO_REGISTRY_TOKEN` missing or invalid | Add/update token in GitHub repo Settings → Secrets → Actions |
 
 ## CI/CD
 
 - `.github/workflows/ci.yml` — push/PR to main, Rust build + test + clippy
-- `.github/workflows/release.yml` — `v*` tag trigger, auto-publish to npm + GitHub Release
-- Required secret: `NPM_TOKEN` (npm Automation token, add in GitHub repo Settings → Secrets → Actions)
+- `.github/workflows/release.yml` — `v*` tag trigger, auto-publish to npm + crates.io + GitHub Release
+- Required secrets: `NPM_TOKEN` (npm Automation token), `CARGO_REGISTRY_TOKEN` (crates.io API token) — add in GitHub repo Settings → Secrets → Actions
 
 ## Error Handling Convention
 
@@ -123,7 +127,7 @@ All user-facing errors must include an AI analysis hint:
 
 ```
 Tip: Copy this error to AI for analysis
-See https://github.com/LokiQ0713/cc-statusline#troubleshooting
+See https://github.com/LokiQ0713/cc-statusline-tui#troubleshooting
 ```
 
 ## Key Internals

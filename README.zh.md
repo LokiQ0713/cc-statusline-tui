@@ -1,8 +1,9 @@
 # cc-statusline
 
-[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
+[![CI](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline-tui)](https://www.npmjs.com/package/cc-statusline-tui)
+[![crates.io](https://img.shields.io/crates/v/cc-statusline-tui)](https://crates.io/crates/cc-statusline-tui)
 
 > Claude Code 的状态栏太素了？给它整点花活。
 
@@ -19,13 +20,19 @@
 ### npm
 
 ```bash
-npx cc-statusline
+npx cc-statusline-tui
+```
+
+### Cargo
+
+```bash
+cargo install cc-statusline-tui
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/cc-statusline
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 ```
 
@@ -110,7 +117,8 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # 从包管理器卸载
-npm uninstall -g cc-statusline
+npm uninstall -g cc-statusline-tui
+# 或者：cargo uninstall cc-statusline-tui
 # 或者：brew uninstall cc-statusline
 ```
 
@@ -118,14 +126,14 @@ npm uninstall -g cc-statusline
 
 | 问题 | 解决办法 |
 |------|---------|
-| "Binary not found" | 重新跑一遍 `npx cc-statusline` 重新下载 |
+| "Binary not found" | 重新跑一遍 `npx cc-statusline-tui` 重新下载 |
 | "Is a directory" 错误 | 检查 `~/.claude/statusline/bin/cc-statusline` 是文件不是目录 |
 | 加密货币不显示 | 删掉 `/tmp/claude-statusline-crypto-lock` 目录（可能是过期的锁） |
 | 改了配置没生效 | 保存后重启 Claude Code |
 
 ## 贡献
 
-发现 bug？想要新功能？[提 Issue](https://github.com/LokiQ0713/cc-statusline/issues)。PR 欢迎。
+发现 bug？想要新功能？[提 Issue](https://github.com/LokiQ0713/cc-statusline-tui/issues)。PR 欢迎。
 
 ## 许可
 

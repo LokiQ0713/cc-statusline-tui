@@ -1,8 +1,9 @@
 # cc-statusline
 
-[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
+[![CI](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline-tui)](https://www.npmjs.com/package/cc-statusline-tui)
+[![crates.io](https://img.shields.io/crates/v/cc-statusline-tui)](https://crates.io/crates/cc-statusline-tui)
 
 > Claude Codeのステータスバー、地味すぎない？華やかにしよう。
 
@@ -19,13 +20,19 @@
 ### npm
 
 ```bash
-npx cc-statusline
+npx cc-statusline-tui
+```
+
+### Cargo
+
+```bash
+cargo install cc-statusline-tui
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/cc-statusline
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 ```
 
@@ -108,7 +115,8 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # パッケージマネージャーからアンインストール
-npm uninstall -g cc-statusline
+npm uninstall -g cc-statusline-tui
+# または: cargo uninstall cc-statusline-tui
 # または: brew uninstall cc-statusline
 ```
 
@@ -116,14 +124,14 @@ npm uninstall -g cc-statusline
 
 | 問題 | 解決策 |
 |------|--------|
-| "Binary not found" | `npx cc-statusline` を再実行して再ダウンロード |
+| "Binary not found" | `npx cc-statusline-tui` を再実行して再ダウンロード |
 | "Is a directory" エラー | `~/.claude/statusline/bin/cc-statusline` がファイルであり、ディレクトリでないことを確認 |
 | 暗号通貨が表示されない | `/tmp/claude-statusline-crypto-lock` ディレクトリがあれば削除（古いロック） |
 | 変更が反映されない | 設定保存後にClaude Codeを再起動 |
 
 ## コントリビューション
 
-バグ発見？新機能のアイデア？[Issueを作成](https://github.com/LokiQ0713/cc-statusline/issues)してください。PRも大歓迎。
+バグ発見？新機能のアイデア？[Issueを作成](https://github.com/LokiQ0713/cc-statusline-tui/issues)してください。PRも大歓迎。
 
 ## License
 

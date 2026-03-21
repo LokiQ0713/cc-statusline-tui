@@ -1,8 +1,9 @@
 # cc-statusline
 
-[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
+[![CI](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline-tui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline-tui)](https://www.npmjs.com/package/cc-statusline-tui)
+[![crates.io](https://img.shields.io/crates/v/cc-statusline-tui)](https://crates.io/crates/cc-statusline-tui)
 
 > Claude Code 상태표시줄, 너무 밋밋하지 않나요? 한번 꾸며봅시다.
 
@@ -19,13 +20,19 @@
 ### npm
 
 ```bash
-npx cc-statusline
+npx cc-statusline-tui
+```
+
+### Cargo
+
+```bash
+cargo install cc-statusline-tui
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/cc-statusline
+brew tap LokiQ0713/cc-statusline-tui
 brew install cc-statusline
 ```
 
@@ -108,7 +115,8 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # 패키지 매니저에서 제거
-npm uninstall -g cc-statusline
+npm uninstall -g cc-statusline-tui
+# 또는: cargo uninstall cc-statusline-tui
 # 또는: brew uninstall cc-statusline
 ```
 
@@ -116,14 +124,14 @@ npm uninstall -g cc-statusline
 
 | 문제 | 해결 방법 |
 |------|----------|
-| "Binary not found" | `npx cc-statusline`를 다시 실행해서 재다운로드 |
+| "Binary not found" | `npx cc-statusline-tui`를 다시 실행해서 재다운로드 |
 | "Is a directory" 오류 | `~/.claude/statusline/bin/cc-statusline`가 디렉토리가 아닌 파일인지 확인 |
 | 암호화폐가 안 보임 | `/tmp/claude-statusline-crypto-lock` 디렉토리가 있으면 삭제 (오래된 잠금) |
 | 변경사항이 안 보임 | 설정 저장 후 Claude Code 재시작 |
 
 ## 기여하기
 
-버그 발견? 기능 제안? [이슈를 열어주세요](https://github.com/LokiQ0713/cc-statusline/issues). PR 환영합니다.
+버그 발견? 기능 제안? [이슈를 열어주세요](https://github.com/LokiQ0713/cc-statusline-tui/issues). PR 환영합니다.
 
 ## License
 
