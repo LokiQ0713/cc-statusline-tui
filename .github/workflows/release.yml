@@ -72,7 +72,12 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
-            --notes "Release ${GITHUB_REF_NAME#v} — download the binary for your platform or install via npm: \`npx claude-statusline-config\`" \
+            --notes "Release ${GITHUB_REF_NAME#v}
+
+Install:
+- **npm**: \`npx claude-statusline-config\`
+- **cargo**: \`cargo install claude-statusline-config\`
+- **brew**: \`brew tap LokiQ0713/claude-statusline-config && brew install claude-statusline-config\`" \
             --latest \
             *.tar.gz
 
@@ -89,3 +94,14 @@ jobs:
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-crate:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Publish to crates.io
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
