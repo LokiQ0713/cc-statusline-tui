@@ -10,7 +10,7 @@ You can expect an initial response within **72 hours**.
 
 The following components are in scope:
 
-- The CLI tool (`claude-statusline-config` binary)
+- The CLI tool (`cc-statusline` binary)
 - The npm postinstall script (`postinstall.js`)
 - The render pipeline (`--render` mode)
 

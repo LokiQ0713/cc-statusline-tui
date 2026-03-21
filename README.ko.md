@@ -1,9 +1,8 @@
-# claude-statusline-config
+# cc-statusline
 
-[![CI](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/claude-statusline-config)](https://www.npmjs.com/package/claude-statusline-config)
-[![crates.io](https://img.shields.io/crates/v/claude-statusline-config)](https://crates.io/crates/claude-statusline-config)
+[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
 
 > Claude Code 상태표시줄, 너무 밋밋하지 않나요? 한번 꾸며봅시다.
 
@@ -20,20 +19,14 @@
 ### npm
 
 ```bash
-npx claude-statusline-config
+npx cc-statusline
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/claude-statusline-config
-brew install claude-statusline-config
-```
-
-### Cargo
-
-```bash
-cargo install claude-statusline-config
+brew tap LokiQ0713/cc-statusline
+brew install cc-statusline
 ```
 
 ## 뭐가 되는 건데?
@@ -115,23 +108,22 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # 패키지 매니저에서 제거
-npm uninstall -g claude-statusline-config
-# 또는: brew uninstall claude-statusline-config
-# 또는: cargo uninstall claude-statusline-config
+npm uninstall -g cc-statusline
+# 또는: brew uninstall cc-statusline
 ```
 
 ## 문제 해결
 
 | 문제 | 해결 방법 |
 |------|----------|
-| "Binary not found" | `npx claude-statusline-config`를 다시 실행해서 재다운로드 |
-| "Is a directory" 오류 | `~/.claude/statusline/bin/claude-statusline-config`가 디렉토리가 아닌 파일인지 확인 |
+| "Binary not found" | `npx cc-statusline`를 다시 실행해서 재다운로드 |
+| "Is a directory" 오류 | `~/.claude/statusline/bin/cc-statusline`가 디렉토리가 아닌 파일인지 확인 |
 | 암호화폐가 안 보임 | `/tmp/claude-statusline-crypto-lock` 디렉토리가 있으면 삭제 (오래된 잠금) |
 | 변경사항이 안 보임 | 설정 저장 후 Claude Code 재시작 |
 
 ## 기여하기
 
-버그 발견? 기능 제안? [이슈를 열어주세요](https://github.com/LokiQ0713/claude-statusline-config/issues). PR 환영합니다.
+버그 발견? 기능 제안? [이슈를 열어주세요](https://github.com/LokiQ0713/cc-statusline/issues). PR 환영합니다.
 
 ## License
 

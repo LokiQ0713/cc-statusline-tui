@@ -1,12 +1,12 @@
-# Contributing to claude-statusline-config
+# Contributing to cc-statusline
 
 ## Development Setup
 
 Prerequisites: Rust toolchain (stable).
 
 ```bash
-git clone https://github.com/LokiQ0713/claude-statusline-config.git
-cd claude-statusline-config
+git clone https://github.com/LokiQ0713/cc-statusline.git
+cd cc-statusline
 cargo build
 ```
 
@@ -41,8 +41,8 @@ echo '{"tool_name":"Read","model":"claude-sonnet-4-20250514"}' | cargo run -- --
 Include:
 
 - Operating system and version
-- Install method (npm / brew / cargo)
-- Tool version (`claude-statusline-config --version`)
+- Install method (npm / brew)
+- Tool version (`cc-statusline --version`)
 - Steps to reproduce
 - Expected vs actual behavior
 - Relevant logs from `~/.claude/statusline/statusline.log`

@@ -44,9 +44,9 @@ pub fn config_path() -> PathBuf {
     statusline_dir().join("config.json")
 }
 
-/// Returns `~/.claude/statusline/bin/claude-statusline-config`
+/// Returns `~/.claude/statusline/bin/cc-statusline`
 pub fn bin_path() -> PathBuf {
-    statusline_dir().join("bin").join("claude-statusline-config")
+    statusline_dir().join("bin").join("cc-statusline")
 }
 
 /// Returns `~/.claude/statusline/statusline.log`

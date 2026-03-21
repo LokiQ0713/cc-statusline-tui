@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in claude-statusline-config
+description: Report a bug in cc-statusline
 labels: ["bug"]
 body:
   - type: textarea
@@ -16,7 +16,7 @@ body:
       label: Steps to Reproduce
       description: Minimal steps to reproduce the issue.
       placeholder: |
-        1. Run `npx claude-statusline-config`
+        1. Run `npx cc-statusline`
         2. Select ...
         3. ...
     validations:
@@ -45,7 +45,7 @@ body:
     id: install-method
     attributes:
       label: Install Method
-      placeholder: "npm / brew / cargo"
+      placeholder: "npm / brew"
     validations:
       required: true
 
@@ -53,7 +53,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Output of `claude-statusline-config --version`
+      description: Output of `cc-statusline --version`
       placeholder: "e.g., 2.1.7"
     validations:
       required: true

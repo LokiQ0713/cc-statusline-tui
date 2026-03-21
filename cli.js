@@ -4,11 +4,11 @@ const { join } = require('path');
 const { homedir } = require('os');
 const { existsSync } = require('fs');
 
-const bin = join(homedir(), '.claude', 'statusline', 'bin', 'claude-statusline-config');
+const bin = join(homedir(), '.claude', 'statusline', 'bin', 'cc-statusline');
 
 if (!existsSync(bin)) {
-  console.error('claude-statusline-config binary not found at', bin);
-  console.error('Try reinstalling: npm install -g claude-statusline-config');
+  console.error('cc-statusline binary not found at', bin);
+  console.error('Try reinstalling: npm install -g cc-statusline');
   process.exit(1);
 }
 

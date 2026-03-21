@@ -5,8 +5,8 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const REPO = 'LokiQ0713/claude-statusline-config';
-const BIN_NAME = 'claude-statusline-config';
+const REPO = 'LokiQ0713/cc-statusline';
+const BIN_NAME = 'cc-statusline';
 const VERSION = require('./package.json').version;
 
 const TARGETS = {
@@ -23,22 +23,22 @@ function main() {
   const target = TARGETS[key];
 
   if (!target) {
-    console.log(`[claude-statusline-config] Unsupported platform: ${platform}-${arch}`);
+    console.log(`[cc-statusline] Unsupported platform: ${platform}-${arch}`);
     console.log('Supported platforms: darwin-arm64, darwin-x64, linux-arm64, linux-x64');
     console.log('You can build from source: https://github.com/' + REPO);
     process.exit(0); // exit gracefully, don't fail install
   }
 
-  const asset = `claude-statusline-config-${target}.tar.gz`;
+  const asset = `cc-statusline-${target}.tar.gz`;
   const url = `https://github.com/${REPO}/releases/download/v${VERSION}/${asset}`;
 
   const binDir = path.join(os.homedir(), '.claude', 'statusline', 'bin');
   const binPath = path.join(binDir, BIN_NAME);
-  const tmpDir = path.join(os.tmpdir(), `claude-statusline-config-${Date.now()}`);
+  const tmpDir = path.join(os.tmpdir(), `cc-statusline-${Date.now()}`);
   const tarPath = path.join(tmpDir, asset);
 
-  console.log(`[claude-statusline-config] Downloading binary for ${platform}-${arch}...`);
-  console.log(`[claude-statusline-config] URL: ${url}`);
+  console.log(`[cc-statusline] Downloading binary for ${platform}-${arch}...`);
+  console.log(`[cc-statusline] URL: ${url}`);
 
   // Create directories
   fs.mkdirSync(tmpDir, { recursive: true });
@@ -47,7 +47,7 @@ function main() {
   download(url, tarPath, 0)
     .then(() => {
       // Extract tar.gz
-      console.log('[claude-statusline-config] Extracting...');
+      console.log('[cc-statusline] Extracting...');
       execSync(`tar xzf "${tarPath}" -C "${tmpDir}"`);
 
       // Find the binary in extracted files
@@ -60,15 +60,15 @@ function main() {
       fs.copyFileSync(extractedBin, binPath);
       fs.chmodSync(binPath, 0o755);
 
-      console.log(`[claude-statusline-config] Installed to ${binPath}`);
+      console.log(`[cc-statusline] Installed to ${binPath}`);
 
       // Cleanup
       fs.rmSync(tmpDir, { recursive: true, force: true });
     })
     .catch((err) => {
-      console.error('[claude-statusline-config] Failed to install binary:', err.message);
-      console.error('[claude-statusline-config] Tip: Copy this error to AI for analysis');
-      console.error('[claude-statusline-config] See https://github.com/' + REPO + '#troubleshooting');
+      console.error('[cc-statusline] Failed to install binary:', err.message);
+      console.error('[cc-statusline] Tip: Copy this error to AI for analysis');
+      console.error('[cc-statusline] See https://github.com/' + REPO + '#troubleshooting');
       // Cleanup on error
       try {
         fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -112,7 +112,7 @@ function download(url, dest, redirectCount) {
   return new Promise((resolve, reject) => {
     const proto = url.startsWith('https') ? https : require('http');
     proto
-      .get(url, { headers: { 'User-Agent': 'claude-statusline-config-npm' } }, (res) => {
+      .get(url, { headers: { 'User-Agent': 'cc-statusline-npm' } }, (res) => {
         // Handle redirects (301, 302, 303, 307, 308)
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           res.resume(); // consume response to free memory

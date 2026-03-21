@@ -1,13 +1,13 @@
-# claude-statusline-config
+# cc-statusline
 
 Interactive CLI tool to configure the Claude Code statusline.
 
 ## Project Info
 
-- Package: `claude-statusline-config`
-- GitHub: `https://github.com/LokiQ0713/claude-statusline-config`
+- Package: `cc-statusline`
+- GitHub: `https://github.com/LokiQ0713/cc-statusline`
 - Registry: npm public registry (ships prebuilt Rust binaries via npm postinstall)
-- Install: `npx claude-statusline-config`
+- Install: `npx cc-statusline`
 
 ## Tech Stack
 
@@ -39,7 +39,7 @@ Interactive CLI tool to configure the Claude Code statusline.
 ## npm Distribution
 
 - `package.json` — npm package manifest (thin shell, no Rust source)
-- `cli.js` — Forwards execution to `~/.claude/statusline/bin/claude-statusline-config`
+- `cli.js` — Forwards execution to `~/.claude/statusline/bin/cc-statusline`
 - `postinstall.js` — Downloads platform-specific binary from GitHub Releases on `npm install`
 
 ## Key Directories
@@ -94,13 +94,13 @@ git push origin main --tags
 
 ```bash
 # Check GitHub Actions status
-gh run list --repo LokiQ0713/claude-statusline-config --workflow=release.yml --limit 3
+gh run list --repo LokiQ0713/cc-statusline --workflow=release.yml --limit 3
 
 # Check npm registry
-npm view claude-statusline-config version
+npm view cc-statusline version
 
 # Check GitHub Release was created
-gh release list --repo LokiQ0713/claude-statusline-config
+gh release list --repo LokiQ0713/cc-statusline
 ```
 
 ### Troubleshooting publish failures
@@ -123,7 +123,7 @@ All user-facing errors must include an AI analysis hint:
 
 ```
 Tip: Copy this error to AI for analysis
-See https://github.com/LokiQ0713/claude-statusline-config#troubleshooting
+See https://github.com/LokiQ0713/cc-statusline#troubleshooting
 ```
 
 ## Key Internals

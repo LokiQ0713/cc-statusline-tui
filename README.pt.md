@@ -1,9 +1,8 @@
-# claude-statusline-config
+# cc-statusline
 
-[![CI](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/claude-statusline-config)](https://www.npmjs.com/package/claude-statusline-config)
-[![crates.io](https://img.shields.io/crates/v/claude-statusline-config)](https://crates.io/crates/claude-statusline-config)
+[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
 
 > A barra de status do seu Claude Code tá sem graça. Bora dar um trato nela.
 
@@ -20,20 +19,14 @@ Escolhe teu método:
 ### npm
 
 ```bash
-npx claude-statusline-config
+npx cc-statusline
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/claude-statusline-config
-brew install claude-statusline-config
-```
-
-### Cargo
-
-```bash
-cargo install claude-statusline-config
+brew tap LokiQ0713/cc-statusline
+brew install cc-statusline
 ```
 
 ## O que acontece?
@@ -115,23 +108,22 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # Desinstalar do gerenciador de pacotes
-npm uninstall -g claude-statusline-config
-# ou: brew uninstall claude-statusline-config
-# ou: cargo uninstall claude-statusline-config
+npm uninstall -g cc-statusline
+# ou: brew uninstall cc-statusline
 ```
 
 ## Solução de problemas
 
 | Problema | Solução |
 |----------|---------|
-| "Binary not found" | Rode `npx claude-statusline-config` de novo pra baixar novamente |
-| Erro "Is a directory" | Verifique que `~/.claude/statusline/bin/claude-statusline-config` é um arquivo, não um diretório |
+| "Binary not found" | Rode `npx cc-statusline` de novo pra baixar novamente |
+| Erro "Is a directory" | Verifique que `~/.claude/statusline/bin/cc-statusline` é um arquivo, não um diretório |
 | Crypto não aparece | Delete o diretório `/tmp/claude-statusline-crypto-lock` se existir (lock travado) |
 | Mudanças não aparecem | Reinicie o Claude Code depois de salvar a configuração |
 
 ## Contribuindo
 
-Achou um bug? Quer uma feature? [Abra uma issue](https://github.com/LokiQ0713/claude-statusline-config/issues). PRs são bem-vindos.
+Achou um bug? Quer uma feature? [Abra uma issue](https://github.com/LokiQ0713/cc-statusline/issues). PRs são bem-vindos.
 
 ## License
 

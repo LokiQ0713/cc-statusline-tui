@@ -1,4 +1,4 @@
-//! Entry point for the claude-statusline-config binary.
+//! Entry point for the cc-statusline binary.
 //!
 //! This single binary serves two purposes depending on arguments:
 //! - No args: launches the interactive TUI wizard (`wizard::run`)

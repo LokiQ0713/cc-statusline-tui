@@ -1,9 +1,9 @@
 {
-  "name": "claude-statusline-config",
+  "name": "cc-statusline",
   "version": "2.0.6",
   "description": "Interactive CLI tool to configure Claude Code statusline",
   "bin": {
-    "claude-statusline-config": "./cli.js"
+    "cc-statusline": "./cli.js"
   },
   "scripts": {
     "postinstall": "node postinstall.js"
@@ -14,11 +14,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/LokiQ0713/claude-statusline-config.git"
+    "url": "https://github.com/LokiQ0713/cc-statusline.git"
   },
-  "homepage": "https://github.com/LokiQ0713/claude-statusline-config",
+  "homepage": "https://github.com/LokiQ0713/cc-statusline",
   "bugs": {
-    "url": "https://github.com/LokiQ0713/claude-statusline-config/issues"
+    "url": "https://github.com/LokiQ0713/cc-statusline/issues"
   },
   "keywords": ["cli", "statusline", "claude-code", "terminal", "configuration", "tui", "rust"],
   "author": "LokiQ0713",

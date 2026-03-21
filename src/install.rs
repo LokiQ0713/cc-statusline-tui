@@ -72,7 +72,7 @@ fn update_settings_at(settings_path: &Path) -> Result<(), String> {
 
     settings["statusLine"] = serde_json::json!({
         "type": "command",
-        "command": "~/.claude/statusline/bin/claude-statusline-config --render",
+        "command": "~/.claude/statusline/bin/cc-statusline --render",
         "padding": 0
     });
 
@@ -100,7 +100,7 @@ mod tests {
     fn expected_status_line() -> serde_json::Value {
         serde_json::json!({
             "type": "command",
-            "command": "~/.claude/statusline/bin/claude-statusline-config --render",
+            "command": "~/.claude/statusline/bin/cc-statusline --render",
             "padding": 0
         })
     }
@@ -181,7 +181,7 @@ mod tests {
 
         // Verify exact structure.
         assert_eq!(sl["type"], "command");
-        assert_eq!(sl["command"], "~/.claude/statusline/bin/claude-statusline-config --render");
+        assert_eq!(sl["command"], "~/.claude/statusline/bin/cc-statusline --render");
         assert_eq!(sl["padding"], 0);
 
         // Ensure no extra keys in statusLine.

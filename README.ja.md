@@ -1,9 +1,8 @@
-# claude-statusline-config
+# cc-statusline
 
-[![CI](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/ci.yml)
-[![Release](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/claude-statusline-config/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/claude-statusline-config)](https://www.npmjs.com/package/claude-statusline-config)
-[![crates.io](https://img.shields.io/crates/v/claude-statusline-config)](https://crates.io/crates/claude-statusline-config)
+[![CI](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/ci.yml)
+[![Release](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml/badge.svg)](https://github.com/LokiQ0713/cc-statusline/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/cc-statusline)](https://www.npmjs.com/package/cc-statusline)
 
 > Claude Codeのステータスバー、地味すぎない？華やかにしよう。
 
@@ -20,20 +19,14 @@
 ### npm
 
 ```bash
-npx claude-statusline-config
+npx cc-statusline
 ```
 
 ### Homebrew
 
 ```bash
-brew tap LokiQ0713/claude-statusline-config
-brew install claude-statusline-config
-```
-
-### Cargo
-
-```bash
-cargo install claude-statusline-config
+brew tap LokiQ0713/cc-statusline
+brew install cc-statusline
 ```
 
 ## 何が起きるの？
@@ -115,23 +108,22 @@ rm -rf ~/.claude/statusline/
 rm -f /tmp/claude-statusline-*
 
 # パッケージマネージャーからアンインストール
-npm uninstall -g claude-statusline-config
-# または: brew uninstall claude-statusline-config
-# または: cargo uninstall claude-statusline-config
+npm uninstall -g cc-statusline
+# または: brew uninstall cc-statusline
 ```
 
 ## トラブルシューティング
 
 | 問題 | 解決策 |
 |------|--------|
-| "Binary not found" | `npx claude-statusline-config` を再実行して再ダウンロード |
-| "Is a directory" エラー | `~/.claude/statusline/bin/claude-statusline-config` がファイルであり、ディレクトリでないことを確認 |
+| "Binary not found" | `npx cc-statusline` を再実行して再ダウンロード |
+| "Is a directory" エラー | `~/.claude/statusline/bin/cc-statusline` がファイルであり、ディレクトリでないことを確認 |
 | 暗号通貨が表示されない | `/tmp/claude-statusline-crypto-lock` ディレクトリがあれば削除（古いロック） |
 | 変更が反映されない | 設定保存後にClaude Codeを再起動 |
 
 ## コントリビューション
 
-バグ発見？新機能のアイデア？[Issueを作成](https://github.com/LokiQ0713/claude-statusline-config/issues)してください。PRも大歓迎。
+バグ発見？新機能のアイデア？[Issueを作成](https://github.com/LokiQ0713/cc-statusline/issues)してください。PRも大歓迎。
 
 ## License
 

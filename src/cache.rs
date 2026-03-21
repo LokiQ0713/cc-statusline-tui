@@ -49,10 +49,10 @@ pub fn usage_cache_path() -> &'static str {
 
 /// Read cached content, refreshing synchronously or in background as needed.
 ///
-/// - **No cache file**: fetches synchronously (blocks) so the first render
-///   already includes data. This is critical because `--render` is a
-///   short-lived process -- a background thread would be killed on exit.
-/// - **Stale cache**: spawns a background thread for SWR; returns stale data.
+/// - **Stale or missing cache**: fetches synchronously (blocks), writes
+///   result to cache, returns fresh data. Synchronous fetch is required
+///   because `--render` is a short-lived process -- background threads
+///   would be killed on exit before completing.
 /// - **Fresh cache**: returns cached content directly.
 pub fn read_or_refresh<F>(
     cache_path: &str,
@@ -65,34 +65,23 @@ where
 {
     let content = fs::read_to_string(cache_path).ok();
     let age = file_age_secs(cache_path);
-    let has_cache = content.as_ref().is_some_and(|s| !s.is_empty());
 
     if age.is_none_or(|a| a >= max_age_secs) {
-        // Clean up stale locks (e.g. from a previous crash or killed thread)
+        // Clean up stale locks (e.g. from a previous crash)
         if let Some(lock_age) = file_age_secs(lock_path) {
             if lock_age > STALE_LOCK_SECS {
                 let _ = fs::remove_dir(lock_path);
             }
         }
 
+        // Synchronous fetch: block until data is available
         if fs::create_dir(lock_path).is_ok() {
-            if has_cache {
-                // SWR: return stale data now, refresh in background
-                let lock = lock_path.to_string();
-                let cache = cache_path.to_string();
-                std::thread::spawn(move || {
-                    if let Some(data) = fetch_fn() {
-                        let _ = fs::write(&cache, &data);
-                    }
-                    let _ = fs::remove_dir(&lock);
-                });
-            } else {
-                // First run: fetch synchronously so data is available this render
-                let result = fetch_fn();
-                if let Some(data) = &result {
-                    let _ = fs::write(cache_path, data);
-                }
-                let _ = fs::remove_dir(lock_path);
+            let result = fetch_fn();
+            if let Some(data) = &result {
+                let _ = fs::write(cache_path, data);
+            }
+            let _ = fs::remove_dir(lock_path);
+            if result.is_some() {
                 return result;
             }
         }
@@ -166,7 +155,7 @@ pub fn fetch_usage() -> Option<String> {
         .get("https://api.anthropic.com/api/oauth/usage")
         .set("Authorization", &format!("Bearer {}", token))
         .set("anthropic-beta", "oauth-2025-04-20")
-        .set("User-Agent", "claude-statusline-config/2.0.0")
+        .set("User-Agent", "cc-statusline/2.0.0")
         .call()
         .ok()?;
     let json: serde_json::Value = resp.into_json().ok()?;
@@ -205,8 +194,8 @@ fn get_oauth_token() -> Option<String> {
 /// Called from the render pipeline to ensure caches are fresh.
 ///
 /// For each enabled segment that relies on a cache file (crypto, usage),
-/// this calls `read_or_refresh` which will either fetch synchronously
-/// (first run) or spawn a background refresh thread (stale cache).
+/// this calls `read_or_refresh` which fetches synchronously when the
+/// cache is stale or missing.
 pub fn ensure_caches_fresh(config: &crate::config::Config) {
     let s = &config.segments;
 
@@ -282,18 +271,18 @@ mod tests {
         let lock = format!("{}-lock", cache);
         cleanup(&lock);
 
-        // max_age=0 → cache is always stale, background refresh triggered
+        // max_age=0 → cache is always stale, synchronous refresh
         let result = read_or_refresh(&cache, &lock, 0, || Some("new-data".to_string()));
 
-        // Should return the old cached content immediately (stale-while-revalidate)
-        assert_eq!(result, Some("old-data".to_string()));
+        // Should return fresh data (synchronous fetch)
+        assert_eq!(result, Some("new-data".to_string()));
 
-        // Wait briefly for background thread to finish
-        std::thread::sleep(std::time::Duration::from_millis(100));
-
-        // After refresh, cache file should contain new data
+        // Cache file should contain new data
         let updated = fs::read_to_string(&cache).unwrap();
         assert_eq!(updated, "new-data");
+
+        // Lock should be cleaned up
+        assert!(fs::metadata(&lock).is_err());
 
         cleanup(&cache);
         cleanup(&lock);

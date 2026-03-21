@@ -8,9 +8,9 @@
 ```bash
 # Download latest binary (macOS ARM example)
 VERSION=2.0.4
-curl -sL "https://github.com/LokiQ0713/claude-statusline-config/releases/download/v${VERSION}/claude-statusline-config-aarch64-apple-darwin.tar.gz" | tar xz -C /tmp/
-chmod +x /tmp/claude-statusline-config
-BINARY=/tmp/claude-statusline-config
+curl -sL "https://github.com/LokiQ0713/cc-statusline/releases/download/v${VERSION}/cc-statusline-aarch64-apple-darwin.tar.gz" | tar xz -C /tmp/
+chmod +x /tmp/cc-statusline
+BINARY=/tmp/cc-statusline
 ```
 
 ## Environment cleanup
@@ -179,23 +179,16 @@ echo '' | $BINARY --render
 ### TC-9.1: npm install + postinstall downloads binary
 ```bash
 rm -rf ~/.claude/statusline/bin
-npm install -g claude-statusline-config@latest
-ls ~/.claude/statusline/bin/claude-statusline-config
+npm install -g cc-statusline@latest
+ls ~/.claude/statusline/bin/cc-statusline
 ```
 - **Expected**: Binary exists, is executable
 
 ### TC-9.2: brew tap + install
 ```bash
-brew tap LokiQ0713/claude-statusline-config
-brew install claude-statusline-config
-which claude-statusline-config
-```
-- **Expected**: Binary available in PATH
-
-### TC-9.3: cargo install
-```bash
-cargo install claude-statusline-config
-which claude-statusline-config
+brew tap LokiQ0713/cc-statusline
+brew install cc-statusline
+which cc-statusline
 ```
 - **Expected**: Binary available in PATH
 
@@ -205,7 +198,7 @@ which claude-statusline-config
 
 ### TC-10.1: Save updates settings.json
 - **Steps**: Complete any wizard flow (preset or custom) with confirm
-- **Expected**: `~/.claude/settings.json` has `statusLine.command` = `~/.claude/statusline/bin/claude-statusline-config --render`
+- **Expected**: `~/.claude/settings.json` has `statusLine.command` = `~/.claude/statusline/bin/cc-statusline --render`
 
 ### TC-10.2: Re-save preserves other settings
 - **Precondition**: settings.json has other keys (e.g., `theme`)
