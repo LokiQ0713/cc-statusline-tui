@@ -25,7 +25,10 @@ pub mod spinner;
 pub mod step_progress;
 pub mod terminal;
 
-use crate::config::{Config, CRYPTO_LIST};
+use crate::config::{
+    Config, ContextSegment, CostSegment, CryptoSegment, GitSegment, ModelSegment, PathSegment,
+    Segments, UsageSegment, CRYPTO_LIST,
+};
 use crate::i18n::{self, t, tf, SUPPORTED_LANGS};
 
 const PREVIEW_ROW: u16 = 3;
@@ -123,17 +126,37 @@ pub fn run() {
         }
     }
 
-    // Step 0b: Mode selection — loop to support Back
-    // Preview switches based on highlighted option:
-    //   defaults/custom → show default config preview
-    //   existing → show existing config preview
+    // Step 0b: Mode selection — presets + existing + custom, flat list
+    // Preview updates live as user navigates between options
     loop {
         show_header(&config, t("step.start"));
+
+        // Build flat option list: 5 presets [+ existing] + custom
         let mut mode_opts = vec![
             select::SelectOption {
-                value: "defaults".into(),
-                label: t("mode.defaults").into(),
-                hint: Some(t("mode.defaultsHint").into()),
+                value: "minimal".into(),
+                label: t("preset.minimal").into(),
+                hint: Some(t("preset.minimalHint").into()),
+            },
+            select::SelectOption {
+                value: "developer".into(),
+                label: t("preset.developer").into(),
+                hint: Some(t("preset.developerHint").into()),
+            },
+            select::SelectOption {
+                value: "dashboard".into(),
+                label: t("preset.dashboard").into(),
+                hint: Some(t("preset.dashboardHint").into()),
+            },
+            select::SelectOption {
+                value: "rainbow".into(),
+                label: t("preset.rainbow").into(),
+                hint: Some(t("preset.rainbowHint").into()),
+            },
+            select::SelectOption {
+                value: "crypto".into(),
+                label: t("preset.crypto").into(),
+                hint: Some(t("preset.cryptoHint").into()),
             },
         ];
         if has_existing {
@@ -150,54 +173,57 @@ pub fn run() {
         });
 
         let existing_ref = &existing_config;
-        let default_ref = &config;
+        let lang = config.lang.clone();
         match select::select(
             t("mode.prompt"),
             &mode_opts,
-            Some("defaults"),
-            &mut |v: &str| {
-                if v == "existing" {
+            Some("developer"),
+            &mut |v: &str| match v {
+                "existing" => {
                     preview::update_preview_in_place(existing_ref, PREVIEW_ROW);
-                } else {
-                    preview::update_preview_in_place(default_ref, PREVIEW_ROW);
+                }
+                "custom" => {
+                    let default_cfg = Config {
+                        lang: lang.clone(),
+                        ..Config::default()
+                    };
+                    preview::update_preview_in_place(&default_cfg, PREVIEW_ROW);
+                }
+                preset_name => {
+                    let preview_cfg = build_preset(&lang, preset_name);
+                    preview::update_preview_in_place(&preview_cfg, PREVIEW_ROW);
                 }
             },
             None,
         ) {
-            select::SelectResult::Selected(v) if v == "defaults" => {
-                let defaults = Config {
-                    lang: config.lang.clone(),
-                    ..Config::default()
-                };
-                show_header(&defaults, t("step.confirm"));
-                match confirm::confirm(t("prompt.saveDefaults"), true, None) {
-                    confirm::ConfirmResult::Yes => {
-                        do_save(&defaults);
-                        return;
-                    }
-                    confirm::ConfirmResult::Cancelled => {
-                        std::process::exit(0);
-                    }
-                    _ => continue,
-                }
-            }
-            select::SelectResult::Selected(v) if v == "existing" => {
+            select::SelectResult::Selected(ref v) if v == "existing" => {
                 show_header(&existing_config, t("step.confirm"));
                 match confirm::confirm(t("prompt.saveExisting"), true, None) {
                     confirm::ConfirmResult::Yes => {
                         do_save(&existing_config);
                         return;
                     }
-                    confirm::ConfirmResult::Cancelled => {
-                        std::process::exit(0);
-                    }
+                    confirm::ConfirmResult::Cancelled => std::process::exit(0),
                     _ => continue,
                 }
             }
-            select::SelectResult::Selected(_) => break, // custom → wizard with default config
-            _ => {
-                std::process::exit(0);
+            select::SelectResult::Selected(ref v) if v == "custom" => {
+                break; // custom → 4-step wizard with default config
             }
+            select::SelectResult::Selected(preset_name) => {
+                // Preset selected — confirm and save
+                let preset_cfg = build_preset(&config.lang, &preset_name);
+                show_header(&preset_cfg, t("step.confirm"));
+                match confirm::confirm(t("prompt.save"), true, None) {
+                    confirm::ConfirmResult::Yes => {
+                        do_save(&preset_cfg);
+                        return;
+                    }
+                    confirm::ConfirmResult::Cancelled => std::process::exit(0),
+                    _ => continue,
+                }
+            }
+            _ => std::process::exit(0),
         }
     }
 
@@ -260,6 +286,265 @@ pub fn run() {
             }
         }
     }
+}
+
+// ── Preset builder ─────────────────────────────────────────────────────────
+
+fn build_preset(lang: &str, name: &str) -> Config {
+    let mut cfg = match name {
+        "minimal" => Config {
+            order: vec!["model".into(), "cost".into(), "context".into()],
+            segments: Segments {
+                model: ModelSegment {
+                    enabled: true,
+                    style: "cyan".into(),
+                    icon: "".into(),
+                },
+                cost: CostSegment {
+                    enabled: true,
+                    style: "green".into(),
+                },
+                usage: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                path: PathSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                git: GitSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                context: ContextSegment {
+                    enabled: true,
+                    style: "semantic".into(),
+                    bar_char: "shade".into(),
+                    bar_length: 8,
+                    show_bar: true,
+                    show_percent: true,
+                    show_size: false,
+                },
+                crypto: CryptoSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+            },
+            ..Default::default()
+        },
+        "developer" => Config {
+            order: vec![
+                "model".into(),
+                "cost".into(),
+                "path".into(),
+                "git".into(),
+                "context".into(),
+            ],
+            segments: Segments {
+                model: ModelSegment {
+                    enabled: true,
+                    style: "cyan".into(),
+                    icon: "".into(),
+                },
+                cost: CostSegment {
+                    enabled: true,
+                    style: "green".into(),
+                },
+                usage: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                path: PathSegment {
+                    enabled: true,
+                    style: "cyan".into(),
+                    max_length: 20,
+                },
+                git: GitSegment {
+                    enabled: true,
+                    style: "cyan".into(),
+                    show_dirty: true,
+                    show_remote: true,
+                },
+                context: ContextSegment {
+                    enabled: true,
+                    style: "semantic".into(),
+                    bar_char: "shade".into(),
+                    bar_length: 10,
+                    show_bar: true,
+                    show_percent: true,
+                    show_size: true,
+                },
+                crypto: CryptoSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+            },
+            ..Default::default()
+        },
+        "dashboard" => Config {
+            order: vec![
+                "model".into(),
+                "cost".into(),
+                "usage".into(),
+                "path".into(),
+                "git".into(),
+                "context".into(),
+                "crypto".into(),
+            ],
+            segments: Segments {
+                model: ModelSegment {
+                    enabled: true,
+                    style: "ultrathink".into(),
+                    icon: "\u{1f525}".into(),
+                },
+                cost: CostSegment {
+                    enabled: true,
+                    style: "green".into(),
+                },
+                usage: UsageSegment {
+                    enabled: true,
+                    style: "ultrathink-gradient".into(),
+                    bar_char: "shade".into(),
+                    bar_length: 8,
+                    show_bar: true,
+                    show_percent: true,
+                    show_reset: true,
+                    refresh_interval: 120,
+                },
+                path: PathSegment {
+                    enabled: true,
+                    style: "cyan".into(),
+                    max_length: 15,
+                },
+                git: GitSegment {
+                    enabled: true,
+                    style: "cyan".into(),
+                    show_dirty: true,
+                    show_remote: true,
+                },
+                context: ContextSegment {
+                    enabled: true,
+                    style: "ultrathink-gradient".into(),
+                    bar_char: "shade".into(),
+                    bar_length: 12,
+                    show_bar: true,
+                    show_percent: true,
+                    show_size: true,
+                },
+                crypto: CryptoSegment {
+                    enabled: true,
+                    style: "green".into(),
+                    refresh_interval: 60,
+                    coins: vec!["BTC".into()],
+                },
+            },
+            ..Default::default()
+        },
+        "rainbow" => Config {
+            order: vec![
+                "model".into(),
+                "cost".into(),
+                "usage".into(),
+                "context".into(),
+                "crypto".into(),
+            ],
+            segments: Segments {
+                model: ModelSegment {
+                    enabled: true,
+                    style: "ultrathink".into(),
+                    icon: "\u{1f525}".into(),
+                },
+                cost: CostSegment {
+                    enabled: true,
+                    style: "ultrathink".into(),
+                },
+                usage: UsageSegment {
+                    enabled: true,
+                    style: "ultrathink-gradient".into(),
+                    bar_char: "full-block".into(),
+                    bar_length: 8,
+                    show_bar: true,
+                    show_percent: true,
+                    show_reset: false,
+                    refresh_interval: 120,
+                },
+                path: PathSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                git: GitSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                context: ContextSegment {
+                    enabled: true,
+                    style: "ultrathink-gradient".into(),
+                    bar_char: "full-block".into(),
+                    bar_length: 12,
+                    show_bar: true,
+                    show_percent: true,
+                    show_size: false,
+                },
+                crypto: CryptoSegment {
+                    enabled: true,
+                    style: "ultrathink".into(),
+                    refresh_interval: 60,
+                    coins: vec!["BTC".into(), "ETH".into()],
+                },
+            },
+            ..Default::default()
+        },
+        "crypto" => Config {
+            order: vec![
+                "model".into(),
+                "cost".into(),
+                "crypto".into(),
+                "context".into(),
+            ],
+            segments: Segments {
+                model: ModelSegment {
+                    enabled: true,
+                    style: "ultrathink".into(),
+                    icon: "\u{1f525}".into(),
+                },
+                cost: CostSegment {
+                    enabled: true,
+                    style: "green".into(),
+                },
+                usage: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                path: PathSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                git: GitSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                context: ContextSegment {
+                    enabled: true,
+                    style: "semantic".into(),
+                    bar_char: "shade".into(),
+                    bar_length: 8,
+                    show_bar: true,
+                    show_percent: true,
+                    show_size: false,
+                },
+                crypto: CryptoSegment {
+                    enabled: true,
+                    style: "green".into(),
+                    refresh_interval: 30,
+                    coins: vec!["BTC".into(), "ETH".into(), "SOL".into()],
+                },
+            },
+            ..Default::default()
+        },
+        _ => Config::default(),
+    };
+    cfg.lang = lang.to_string();
+    cfg
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
