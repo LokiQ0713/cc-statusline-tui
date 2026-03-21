@@ -1,6 +1,6 @@
 {
   "name": "claude-statusline-config",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Interactive CLI tool to configure Claude Code statusline",
   "bin": {
     "claude-statusline-config": "./cli.js"
@@ -21,8 +21,14 @@
     "url": "https://github.com/LokiQ0713/claude-statusline-config/issues"
   },
   "license": "MIT",
-  "os": ["darwin", "linux"],
-  "cpu": ["arm64", "x64"],
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
   "engines": {
     "node": ">=18"
   }
