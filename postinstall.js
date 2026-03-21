@@ -7,6 +7,7 @@ const { execSync } = require('child_process');
 
 const REPO = 'LokiQ0713/claude-statusline-config';
 const BIN_NAME = 'claude-statusline-config';
+const VERSION = require('./package.json').version;
 
 const TARGETS = {
   'darwin-arm64': 'aarch64-apple-darwin',
@@ -29,7 +30,7 @@ function main() {
   }
 
   const asset = `claude-statusline-config-${target}.tar.gz`;
-  const url = `https://github.com/${REPO}/releases/latest/download/${asset}`;
+  const url = `https://github.com/${REPO}/releases/download/v${VERSION}/${asset}`;
 
   const binDir = path.join(os.homedir(), '.claude', 'statusline', 'bin');
   const binPath = path.join(binDir, BIN_NAME);
