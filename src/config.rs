@@ -70,7 +70,7 @@ impl Default for ModelSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "ultrathink".into(),
+            style: "cyan".into(),
             icon: "\u{1f525}".into(), // fire emoji
         }
     }
@@ -108,7 +108,7 @@ impl Default for UsageSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "semantic".into(),
+            style: "white".into(),
             bar_char: "shade".into(),
             bar_length: 8,
             show_bar: false,
@@ -131,7 +131,7 @@ impl Default for PathSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "cyan".into(),
+            style: "ultrathink".into(),
             max_length: 15,
         }
     }
@@ -173,7 +173,7 @@ impl Default for ContextSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "ultrathink-gradient".into(),
+            style: "semantic".into(),
             bar_char: "shade".into(),
             bar_length: 12,
             show_bar: true,

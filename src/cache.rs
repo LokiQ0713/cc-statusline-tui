@@ -1,19 +1,26 @@
 //! File-based stale-while-revalidate cache for crypto prices and usage data.
 //!
-//! Each cache is a plain text file in `/tmp/claude-statusline-*`. When the
-//! cache is older than `max_age_secs`, a background thread fetches fresh
-//! data while the stale content is returned immediately. A `mkdir`-based
-//! lock prevents concurrent refresh attempts.
+//! Each cache is a plain text file in `/tmp/claude-statusline-*`. The cache
+//! strategy adapts to the short-lived `--render` process:
+//!
+//! - **No cache (first run)**: synchronous fetch with 5s timeout, blocks until
+//!   data is written so the segment renders immediately.
+//! - **Stale cache**: background thread fetches fresh data while stale content
+//!   is returned immediately (classic SWR).
+//! - **Fresh cache**: returned directly, no fetch.
+//!
+//! A `mkdir`-based lock prevents concurrent refresh attempts. Stale locks
+//! (older than 30s) are automatically cleaned up.
 //!
 //! Key functions:
 //! - `ensure_caches_fresh(config)` -- called from `render::run()` to trigger
-//!   background refreshes for enabled crypto/usage segments
+//!   refreshes for enabled crypto/usage segments
 //! - `read_or_refresh(cache, lock, max_age, fetch_fn)` -- core SWR logic
 //! - `fetch_crypto(coins)` -- fetches prices from Binance API
 //! - `fetch_usage()` -- fetches 5h usage from Anthropic OAuth API
 
 use std::fs;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 // ─── Cache file paths ────────────────────────────────────────────────────────
 
@@ -21,6 +28,12 @@ const CRYPTO_CACHE: &str = "/tmp/claude-statusline-crypto-cache";
 const CRYPTO_LOCK: &str = "/tmp/claude-statusline-crypto-lock";
 const USAGE_CACHE: &str = "/tmp/claude-statusline-usage-cache";
 const USAGE_LOCK: &str = "/tmp/claude-statusline-usage-lock";
+
+/// HTTP request timeout for all fetchers.
+const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Lock directories older than this are considered stale and removed.
+const STALE_LOCK_SECS: u64 = 30;
 
 #[allow(dead_code)]
 pub fn crypto_cache_path() -> &'static str {
@@ -34,12 +47,13 @@ pub fn usage_cache_path() -> &'static str {
 
 // ─── Cache core ──────────────────────────────────────────────────────────────
 
-/// Read cached content and trigger a background refresh when stale.
+/// Read cached content, refreshing synchronously or in background as needed.
 ///
-/// - Returns the existing cached content immediately (stale-while-revalidate).
-/// - If the cache is older than `max_age_secs` (or missing), spawns a
-///   background thread that calls `fetch_fn` and writes the result.
-/// - A `mkdir`-based lock prevents concurrent refresh attempts.
+/// - **No cache file**: fetches synchronously (blocks) so the first render
+///   already includes data. This is critical because `--render` is a
+///   short-lived process -- a background thread would be killed on exit.
+/// - **Stale cache**: spawns a background thread for SWR; returns stale data.
+/// - **Fresh cache**: returns cached content directly.
 pub fn read_or_refresh<F>(
     cache_path: &str,
     lock_path: &str,
@@ -51,21 +65,36 @@ where
 {
     let content = fs::read_to_string(cache_path).ok();
     let age = file_age_secs(cache_path);
+    let has_cache = content.as_ref().is_some_and(|s| !s.is_empty());
 
     if age.is_none_or(|a| a >= max_age_secs) {
-        // mkdir-based lock (same pattern as the .sh version)
+        // Clean up stale locks (e.g. from a previous crash or killed thread)
+        if let Some(lock_age) = file_age_secs(lock_path) {
+            if lock_age > STALE_LOCK_SECS {
+                let _ = fs::remove_dir(lock_path);
+            }
+        }
+
         if fs::create_dir(lock_path).is_ok() {
-            let lock = lock_path.to_string();
-            let cache = cache_path.to_string();
-            std::thread::spawn(move || {
-                if let Some(data) = fetch_fn() {
-                    let _ = fs::write(&cache, &data);
-                } else {
-                    // touch to avoid immediate retry
-                    let _ = fs::write(&cache, "");
+            if has_cache {
+                // SWR: return stale data now, refresh in background
+                let lock = lock_path.to_string();
+                let cache = cache_path.to_string();
+                std::thread::spawn(move || {
+                    if let Some(data) = fetch_fn() {
+                        let _ = fs::write(&cache, &data);
+                    }
+                    let _ = fs::remove_dir(&lock);
+                });
+            } else {
+                // First run: fetch synchronously so data is available this render
+                let result = fetch_fn();
+                if let Some(data) = &result {
+                    let _ = fs::write(cache_path, data);
                 }
-                let _ = fs::remove_dir(&lock);
-            });
+                let _ = fs::remove_dir(lock_path);
+                return result;
+            }
         }
     }
 
@@ -81,9 +110,24 @@ fn file_age_secs(path: &str) -> Option<u64> {
         .map(|d| d.as_secs())
 }
 
+// ─── HTTP agent ──────────────────────────────────────────────────────────────
+
+/// Build a ureq agent with connection and read timeouts.
+fn http_agent() -> ureq::Agent {
+    ureq::AgentBuilder::new()
+        .timeout_connect(FETCH_TIMEOUT)
+        .timeout_read(FETCH_TIMEOUT)
+        .build()
+}
+
 // ─── Crypto fetcher ──────────────────────────────────────────────────────────
 
+/// Fetch prices for multiple coins from Binance API (one request per coin).
+///
+/// Returns `Some("price1|price2|...")` if all coins succeed, `None` otherwise.
+/// Each request has a 5s timeout to avoid blocking the render pipeline.
 pub fn fetch_crypto(coins: &[String]) -> Option<String> {
+    let agent = http_agent();
     let prices: Vec<String> = coins
         .iter()
         .map(|coin| {
@@ -92,13 +136,16 @@ pub fn fetch_crypto(coins: &[String]) -> Option<String> {
                 "https://api.binance.com/api/v3/ticker/price?symbol={}",
                 pair
             );
-            match ureq::get(&url).call() {
+            match agent.get(&url).call() {
                 Ok(resp) => resp
                     .into_json::<serde_json::Value>()
                     .ok()
                     .and_then(|v| v["price"].as_str().map(String::from))
                     .unwrap_or_default(),
-                Err(_) => String::new(),
+                Err(e) => {
+                    crate::log::error(&format!("crypto fetch {}: {}", coin, e));
+                    String::new()
+                }
             }
         })
         .collect();
@@ -114,7 +161,9 @@ pub fn fetch_crypto(coins: &[String]) -> Option<String> {
 
 pub fn fetch_usage() -> Option<String> {
     let token = get_oauth_token()?;
-    let resp = ureq::get("https://api.anthropic.com/api/oauth/usage")
+    let agent = http_agent();
+    let resp = agent
+        .get("https://api.anthropic.com/api/oauth/usage")
         .set("Authorization", &format!("Bearer {}", token))
         .set("anthropic-beta", "oauth-2025-04-20")
         .set("User-Agent", "claude-statusline-config/2.0.0")
@@ -156,9 +205,8 @@ fn get_oauth_token() -> Option<String> {
 /// Called from the render pipeline to ensure caches are fresh.
 ///
 /// For each enabled segment that relies on a cache file (crypto, usage),
-/// this calls `read_or_refresh` which will spawn a background fetch thread
-/// when the cache is stale. The actual render functions still read the
-/// cache files directly.
+/// this calls `read_or_refresh` which will either fetch synchronously
+/// (first run) or spawn a background refresh thread (stale cache).
 pub fn ensure_caches_fresh(config: &crate::config::Config) {
     let s = &config.segments;
 
@@ -204,7 +252,11 @@ mod tests {
     fn test_file_age_secs() {
         let path = temp_file("age", "hello");
         let age = file_age_secs(&path).expect("should get age");
-        assert!(age <= 1, "freshly created file should be 0 or 1 second old, got {}", age);
+        assert!(
+            age <= 1,
+            "freshly created file should be 0 or 1 second old, got {}",
+            age
+        );
         cleanup(&path);
     }
 
@@ -248,23 +300,24 @@ mod tests {
     }
 
     #[test]
-    fn test_read_or_refresh_no_cache() {
-        let cache = "/tmp/claude-statusline-cache-test-nonexistent";
+    fn test_read_or_refresh_no_cache_sync_fetch() {
+        let cache = "/tmp/claude-statusline-cache-test-sync";
         let lock = format!("{}-lock", cache);
         cleanup(cache);
         cleanup(&lock);
 
+        // No cache → synchronous fetch, returns data immediately
         let result = read_or_refresh(cache, &lock, 60, || Some("fetched".to_string()));
 
-        // No cached content to return
-        assert!(result.is_none());
+        // Should return fetched data directly (no background thread)
+        assert_eq!(result, Some("fetched".to_string()));
 
-        // Wait for background thread
-        std::thread::sleep(std::time::Duration::from_millis(100));
-
-        // Cache file should now exist with fetched data
+        // Cache file should exist
         let written = fs::read_to_string(cache).unwrap();
         assert_eq!(written, "fetched");
+
+        // Lock should be cleaned up
+        assert!(fs::metadata(&lock).is_err());
 
         cleanup(cache);
         cleanup(&lock);
@@ -276,12 +329,10 @@ mod tests {
         let lock = format!("{}-lock", cache);
         cleanup(&lock);
 
-        let result = read_or_refresh(&cache, &lock, 9999, || {
-            panic!("should not refresh fresh cache");
-        });
+        // Empty cache treated as missing → sync fetch
+        let result = read_or_refresh(&cache, &lock, 0, || Some("refetched".to_string()));
 
-        // Empty content is filtered out → None
-        assert!(result.is_none());
+        assert_eq!(result, Some("refetched".to_string()));
 
         cleanup(&cache);
         cleanup(&lock);

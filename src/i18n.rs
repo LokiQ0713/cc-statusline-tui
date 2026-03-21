@@ -110,6 +110,8 @@ fn t_en(key: &str) -> &'static str {
 
         // Mode selection
         "mode.prompt" => "Config mode",
+        "mode.presets" => "Recommended presets",
+        "mode.presetsHint" => "Pick a curated setup, ready to go",
         "mode.defaults" => "Use defaults",
         "mode.defaultsHint" => "Save directly, just press Enter",
         "mode.custom" => "Customize",
@@ -117,6 +119,18 @@ fn t_en(key: &str) -> &'static str {
         "mode.existing" => "Use existing config",
         "mode.existingHint" => "Keep your current setup",
         "prompt.saveExisting" => "Re-apply existing config?",
+
+        // Presets
+        "preset.minimal" => "Minimal",
+        "preset.minimalHint" => "Model + Cost + Context bar",
+        "preset.developer" => "Developer",
+        "preset.developerHint" => "Model + Cost + Path + Git + Context",
+        "preset.dashboard" => "Full Dashboard",
+        "preset.dashboardHint" => "Everything enabled, all the data",
+        "preset.rainbow" => "Rainbow",
+        "preset.rainbowHint" => "Maximum color, rainbow everywhere",
+        "preset.crypto" => "Crypto",
+        "preset.cryptoHint" => "Model + Cost + BTC/ETH/SOL + Context",
 
         // Segments
         "seg.model" => "Model",
@@ -208,6 +222,8 @@ fn t_zh(key: &str) -> &'static str {
         "step.confirm" => "4/4 确认",
 
         "mode.prompt" => "配置模式",
+        "mode.presets" => "推荐预设",
+        "mode.presetsHint" => "精选配置方案，即选即用",
         "mode.defaults" => "使用默认配置",
         "mode.defaultsHint" => "直接保存，按回车即可",
         "mode.custom" => "自定义配置",
@@ -215,6 +231,17 @@ fn t_zh(key: &str) -> &'static str {
         "mode.existing" => "使用已有配置",
         "mode.existingHint" => "保持当前配置不变",
         "prompt.saveExisting" => "重新应用已有配置？",
+
+        "preset.minimal" => "极简",
+        "preset.minimalHint" => "模型 + 费用 + 上下文进度条",
+        "preset.developer" => "开发者",
+        "preset.developerHint" => "模型 + 费用 + 目录 + Git + 上下文",
+        "preset.dashboard" => "全部仪表盘",
+        "preset.dashboardHint" => "全部段落开启，信息最大化",
+        "preset.rainbow" => "彩虹",
+        "preset.rainbowHint" => "全彩虹渐变，满屏闪烁",
+        "preset.crypto" => "币圈",
+        "preset.cryptoHint" => "模型 + 费用 + 三大币价 + 上下文",
 
         "seg.model" => "模型",
         "seg.cost" => "费用",
@@ -297,6 +324,8 @@ fn t_ja(key: &str) -> &'static str {
         "step.confirm" => "4/4 確認",
 
         "mode.prompt" => "設定モード",
+        "mode.presets" => "おすすめプリセット",
+        "mode.presetsHint" => "厳選された設定、すぐ使える",
         "mode.defaults" => "デフォルトを使用",
         "mode.defaultsHint" => "そのまま保存、Enterを押すだけ",
         "mode.custom" => "カスタマイズ",
@@ -304,6 +333,17 @@ fn t_ja(key: &str) -> &'static str {
         "mode.existing" => "既存の設定を使用",
         "mode.existingHint" => "現在の設定をそのまま維持",
         "prompt.saveExisting" => "既存の設定を再適用しますか？",
+
+        "preset.minimal" => "ミニマル",
+        "preset.minimalHint" => "モデル + コスト + コンテキストバー",
+        "preset.developer" => "デベロッパー",
+        "preset.developerHint" => "モデル + コスト + パス + Git + コンテキスト",
+        "preset.dashboard" => "フルダッシュボード",
+        "preset.dashboardHint" => "全セグメント有効、最大情報量",
+        "preset.rainbow" => "レインボー",
+        "preset.rainbowHint" => "全色カラー、レインボー全開",
+        "preset.crypto" => "クリプト",
+        "preset.cryptoHint" => "モデル + コスト + BTC/ETH/SOL + コンテキスト",
 
         "seg.model" => "モデル",
         "seg.cost" => "コスト",
@@ -386,6 +426,8 @@ fn t_ko(key: &str) -> &'static str {
         "step.confirm" => "4/4 확인",
 
         "mode.prompt" => "설정 모드",
+        "mode.presets" => "추천 프리셋",
+        "mode.presetsHint" => "엄선된 설정, 바로 사용",
         "mode.defaults" => "기본값 사용",
         "mode.defaultsHint" => "바로 저장, Enter만 누르세요",
         "mode.custom" => "사용자 정의",
@@ -393,6 +435,17 @@ fn t_ko(key: &str) -> &'static str {
         "mode.existing" => "기존 설정 사용",
         "mode.existingHint" => "현재 설정 유지",
         "prompt.saveExisting" => "기존 설정을 다시 적용하시겠습니까?",
+
+        "preset.minimal" => "미니멀",
+        "preset.minimalHint" => "모델 + 비용 + 컨텍스트 바",
+        "preset.developer" => "개발자",
+        "preset.developerHint" => "모델 + 비용 + 경로 + Git + 컨텍스트",
+        "preset.dashboard" => "풀 대시보드",
+        "preset.dashboardHint" => "전체 세그먼트 활성화",
+        "preset.rainbow" => "레인보우",
+        "preset.rainbowHint" => "풀 컬러, 레인보우 전개",
+        "preset.crypto" => "크립토",
+        "preset.cryptoHint" => "모델 + 비용 + BTC/ETH/SOL + 컨텍스트",
 
         "seg.model" => "모델",
         "seg.cost" => "비용",
@@ -475,6 +528,8 @@ fn t_es(key: &str) -> &'static str {
         "step.confirm" => "4/4 Confirmar",
 
         "mode.prompt" => "Modo de configuración",
+        "mode.presets" => "Presets recomendados",
+        "mode.presetsHint" => "Configuraciones seleccionadas, listas para usar",
         "mode.defaults" => "Usar valores predeterminados",
         "mode.defaultsHint" => "Guardar directamente, solo presiona Enter",
         "mode.custom" => "Personalizar",
@@ -482,6 +537,17 @@ fn t_es(key: &str) -> &'static str {
         "mode.existing" => "Usar configuración existente",
         "mode.existingHint" => "Mantener tu configuración actual",
         "prompt.saveExisting" => "¿Reaplicar la configuración existente?",
+
+        "preset.minimal" => "Minimalista",
+        "preset.minimalHint" => "Modelo + Costo + Barra de contexto",
+        "preset.developer" => "Desarrollador",
+        "preset.developerHint" => "Modelo + Costo + Ruta + Git + Contexto",
+        "preset.dashboard" => "Panel completo",
+        "preset.dashboardHint" => "Todo habilitado, máxima información",
+        "preset.rainbow" => "Arcoíris",
+        "preset.rainbowHint" => "Color máximo, arcoíris por todas partes",
+        "preset.crypto" => "Cripto",
+        "preset.cryptoHint" => "Modelo + Costo + BTC/ETH/SOL + Contexto",
 
         "seg.model" => "Modelo",
         "seg.cost" => "Costo",
@@ -564,6 +630,8 @@ fn t_pt(key: &str) -> &'static str {
         "step.confirm" => "4/4 Confirmar",
 
         "mode.prompt" => "Modo de configuração",
+        "mode.presets" => "Presets recomendados",
+        "mode.presetsHint" => "Configurações selecionadas, prontas para usar",
         "mode.defaults" => "Usar padrões",
         "mode.defaultsHint" => "Salvar diretamente, apenas pressione Enter",
         "mode.custom" => "Personalizar",
@@ -571,6 +639,17 @@ fn t_pt(key: &str) -> &'static str {
         "mode.existing" => "Usar configuração existente",
         "mode.existingHint" => "Manter sua configuração atual",
         "prompt.saveExisting" => "Reaplicar a configuração existente?",
+
+        "preset.minimal" => "Minimalista",
+        "preset.minimalHint" => "Modelo + Custo + Barra de contexto",
+        "preset.developer" => "Desenvolvedor",
+        "preset.developerHint" => "Modelo + Custo + Caminho + Git + Contexto",
+        "preset.dashboard" => "Painel completo",
+        "preset.dashboardHint" => "Tudo habilitado, máxima informação",
+        "preset.rainbow" => "Arco-íris",
+        "preset.rainbowHint" => "Cor máxima, arco-íris em todo lugar",
+        "preset.crypto" => "Cripto",
+        "preset.cryptoHint" => "Modelo + Custo + BTC/ETH/SOL + Contexto",
 
         "seg.model" => "Modelo",
         "seg.cost" => "Custo",
@@ -653,6 +732,8 @@ fn t_ru(key: &str) -> &'static str {
         "step.confirm" => "4/4 Подтверждение",
 
         "mode.prompt" => "Режим настройки",
+        "mode.presets" => "Рекомендуемые пресеты",
+        "mode.presetsHint" => "Готовые конфигурации на выбор",
         "mode.defaults" => "Использовать по умолчанию",
         "mode.defaultsHint" => "Сохранить сразу, просто нажмите Enter",
         "mode.custom" => "Настроить",
@@ -660,6 +741,17 @@ fn t_ru(key: &str) -> &'static str {
         "mode.existing" => "Использовать существующие настройки",
         "mode.existingHint" => "Сохранить текущую конфигурацию",
         "prompt.saveExisting" => "Применить существующие настройки заново?",
+
+        "preset.minimal" => "Минимум",
+        "preset.minimalHint" => "Модель + Стоимость + Контекст",
+        "preset.developer" => "Разработчик",
+        "preset.developerHint" => "Модель + Стоимость + Путь + Git + Контекст",
+        "preset.dashboard" => "Полная панель",
+        "preset.dashboardHint" => "Все сегменты включены",
+        "preset.rainbow" => "Радуга",
+        "preset.rainbowHint" => "Максимум цвета, радуга везде",
+        "preset.crypto" => "Крипто",
+        "preset.cryptoHint" => "Модель + Стоимость + BTC/ETH/SOL + Контекст",
 
         "seg.model" => "Модель",
         "seg.cost" => "Стоимость",
