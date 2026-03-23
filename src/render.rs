@@ -255,15 +255,23 @@ pub fn run() {
     // Ensure crypto/usage caches are fresh (spawns background refresh if stale)
     crate::cache::ensure_caches_fresh(&config);
 
-    let mut parts: Vec<String> = Vec::new();
-
-    for key in &config.order {
-        if let Some(s) = render_segment(key, &config, &input, &home, now) {
-            parts.push(s);
+    let rows = config.effective_rows();
+    let mut first = true;
+    for row_keys in &rows {
+        let mut parts: Vec<String> = Vec::new();
+        for key in *row_keys {
+            if let Some(s) = render_segment(key, &config, &input, &home, now) {
+                parts.push(s);
+            }
+        }
+        if !parts.is_empty() {
+            if !first {
+                print!("\n");
+            }
+            print!("{}", parts.join(" "));
+            first = false;
         }
     }
-
-    print!("{}", parts.join(" "));
 }
 
 /// Dispatch to per-segment renderers based on the key.
@@ -303,7 +311,12 @@ fn render_segment(
         "usage" => {
             let seg = &config.segments.usage;
             if !seg.enabled { return None; }
-            render_usage(seg, input, now)
+            render_usage_window(seg, input.rate_limits.five_hour.as_ref(), "5h", now)
+        }
+        "usage_7d" => {
+            let seg = &config.segments.usage_7d;
+            if !seg.enabled { return None; }
+            render_usage_window(seg, input.rate_limits.seven_day.as_ref(), "7d", now)
         }
         "crypto" => {
             let seg = &config.segments.crypto;
@@ -449,17 +462,32 @@ fn render_context(
     }
 }
 
-fn render_usage(
+/// Render a rate-limit usage window (5h or 7d).
+/// `default_label` is used when the segment config has no label set.
+fn render_usage_window(
     seg: &crate::config::UsageSegment,
-    input: &StdinInput,
+    window: Option<&StdinRateLimitWindow>,
+    default_label: &str,
     now: u64,
 ) -> Option<String> {
-    let window = input.rate_limits.five_hour.as_ref()?;
+    let window = window?;
     let pct = window.used_percentage? as u64;
     let resets_at = window.resets_at.as_deref().unwrap_or("");
 
     let ratio = pct as f64 / 100.0;
+    let label = if seg.label.is_empty() {
+        default_label
+    } else {
+        &seg.label
+    };
     let mut parts = Vec::new();
+
+    // Label always comes first
+    parts.push(crate::styles::format_colored(
+        &seg.style,
+        &format!("{}:", label),
+        now,
+    ));
 
     if seg.show_bar {
         parts.push(crate::styles::format_bar(
@@ -486,7 +514,8 @@ fn render_usage(
             ));
         }
     }
-    if parts.is_empty() {
+    // parts always has at least the label, but if only label exists, skip
+    if parts.len() <= 1 {
         None
     } else {
         Some(parts.join(" "))
@@ -516,9 +545,12 @@ fn format_countdown(resets_at: &str, now: u64) -> Option<String> {
         return None;
     }
     let diff = epoch - now;
-    let hours = diff / 3600;
+    let days = diff / 86400;
+    let hours = (diff % 86400) / 3600;
     let mins = (diff % 3600) / 60;
-    if hours > 0 {
+    if days > 0 {
+        Some(format!("{}d{}h", days, hours))
+    } else if hours > 0 {
         Some(format!("{}h{}m", hours, mins))
     } else {
         Some(format!("{}m", mins))
@@ -1131,5 +1163,174 @@ mod tests {
         let usage = render_segment("usage", &config, &input, "/Users/loki", 1774280000);
         assert!(usage.is_some());
         assert!(strip_ansi(&usage.unwrap()).contains("47%"));
+    }
+
+    // ─── Multi-row & rows config tests ───────────────────────────────
+
+    #[test]
+    fn test_effective_rows_from_rows_field() {
+        let config = crate::config::Config {
+            rows: vec![
+                vec!["model".into(), "cost".into()],
+                vec!["usage".into(), "usage_7d".into()],
+            ],
+            order: vec!["should".into(), "be".into(), "ignored".into()],
+            ..Default::default()
+        };
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0], &["model", "cost"]);
+        assert_eq!(rows[1], &["usage", "usage_7d"]);
+    }
+
+    #[test]
+    fn test_effective_rows_fallback_to_order() {
+        let config = crate::config::Config {
+            rows: Vec::new(),
+            order: vec!["model".into(), "cost".into()],
+            order_row2: vec!["usage".into()],
+            ..Default::default()
+        };
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0], &["model", "cost"]);
+        assert_eq!(rows[1], &["usage"]);
+    }
+
+    #[test]
+    fn test_effective_rows_single_row_legacy() {
+        let config = crate::config::Config {
+            rows: Vec::new(),
+            order: vec!["model".into()],
+            order_row2: Vec::new(),
+            ..Default::default()
+        };
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 1);
+    }
+
+    #[test]
+    fn test_effective_rows_capped_at_3() {
+        let config = crate::config::Config {
+            rows: vec![
+                vec!["model".into()],
+                vec!["cost".into()],
+                vec!["usage".into()],
+                vec!["crypto".into()], // 4th row — should be dropped
+                vec!["context".into()], // 5th row — should be dropped
+            ],
+            ..Default::default()
+        };
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[2], &["usage"]);
+    }
+
+    #[test]
+    fn test_effective_rows_empty_rows_skipped_in_render() {
+        // Empty inner vecs should produce no output lines
+        let config = crate::config::Config {
+            rows: vec![
+                vec!["model".into()],
+                vec![], // empty row
+                vec!["cost".into()],
+            ],
+            ..Default::default()
+        };
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 3); // all 3 returned, but render skips empty
+        assert!(rows[1].is_empty());
+    }
+
+    #[test]
+    fn test_usage_7d_renders_seven_day_data() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+        let mut config = crate::config::Config::default();
+        config.segments.usage_7d.enabled = true;
+
+        let result = render_segment("usage_7d", &config, &input, "", 1774280000);
+        assert!(result.is_some());
+        let visible = strip_ansi(&result.unwrap());
+        assert!(visible.contains("7d:"));
+        assert!(visible.contains("28%"));
+        assert!(visible.contains("d")); // countdown contains days
+    }
+
+    #[test]
+    fn test_usage_renders_with_label() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+        let config = crate::config::Config::default();
+
+        let result = render_segment("usage", &config, &input, "", 1774280000);
+        assert!(result.is_some());
+        let visible = strip_ansi(&result.unwrap());
+        assert!(visible.starts_with("5h:"));
+    }
+
+    #[test]
+    fn test_usage_custom_label() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+        let mut config = crate::config::Config::default();
+        config.segments.usage.label = "FIVE".into();
+
+        let result = render_segment("usage", &config, &input, "", 1774280000);
+        let visible = strip_ansi(&result.unwrap());
+        assert!(visible.starts_with("FIVE:"));
+    }
+
+    #[test]
+    fn test_usage_7d_disabled_returns_none() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+        let mut config = crate::config::Config::default();
+        config.segments.usage_7d.enabled = false;
+
+        let result = render_segment("usage_7d", &config, &input, "", 0);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_usage_no_rate_limits_returns_none() {
+        let input = StdinInput::default(); // no rate_limits
+        let config = crate::config::Config::default();
+
+        let result = render_segment("usage", &config, &input, "", 0);
+        assert!(result.is_none());
+
+        let result_7d = render_segment("usage_7d", &config, &input, "", 0);
+        assert!(result_7d.is_none());
+    }
+
+    #[test]
+    fn test_format_countdown_days() {
+        // 3 days 5 hours from now
+        let now = 1774280000u64;
+        let future = now + 3 * 86400 + 5 * 3600;
+        let result = format_countdown(&future.to_string(), now).unwrap();
+        assert_eq!(result, "3d5h");
+    }
+
+    #[test]
+    fn test_format_countdown_minutes_only() {
+        let now = 1774280000u64;
+        let future = now + 45 * 60;
+        let result = format_countdown(&future.to_string(), now).unwrap();
+        assert_eq!(result, "45m");
+    }
+
+    #[test]
+    fn test_three_row_config() {
+        let config = crate::config::Config {
+            rows: vec![
+                vec!["model".into(), "cost".into()],
+                vec!["path".into(), "git".into()],
+                vec!["usage".into(), "usage_7d".into()],
+            ],
+            ..Default::default()
+        };
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0], &["model", "cost"]);
+        assert_eq!(rows[1], &["path", "git"]);
+        assert_eq!(rows[2], &["usage", "usage_7d"]);
     }
 }

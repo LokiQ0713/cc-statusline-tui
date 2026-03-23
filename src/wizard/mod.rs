@@ -336,6 +336,10 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     enabled: false,
                     ..Default::default()
                 },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
             ..Default::default()
         },
@@ -385,6 +389,10 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     enabled: false,
                     ..Default::default()
                 },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
             ..Default::default()
         },
@@ -416,6 +424,7 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     show_bar: true,
                     show_percent: true,
                     show_reset: true,
+                    label: String::new(),
                 },
                 path: PathSegment {
                     enabled: true,
@@ -442,6 +451,10 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     style: "green".into(),
                     refresh_interval: 60,
                     coins: vec!["BTC".into()],
+                },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
                 },
             },
             ..Default::default()
@@ -472,6 +485,7 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     show_bar: true,
                     show_percent: true,
                     show_reset: false,
+                    label: String::new(),
                 },
                 path: PathSegment {
                     enabled: false,
@@ -495,6 +509,10 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     style: "ultrathink".into(),
                     refresh_interval: 60,
                     coins: vec!["BTC".into(), "ETH".into()],
+                },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
                 },
             },
             ..Default::default()
@@ -542,6 +560,10 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     style: "green".into(),
                     refresh_interval: 30,
                     coins: vec!["BTC".into(), "ETH".into(), "SOL".into()],
+                },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
                 },
             },
             ..Default::default()
