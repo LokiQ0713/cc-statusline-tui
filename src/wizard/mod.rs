@@ -411,7 +411,6 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     show_bar: true,
                     show_percent: true,
                     show_reset: true,
-                    refresh_interval: 120,
                 },
                 path: PathSegment {
                     enabled: true,
@@ -468,7 +467,6 @@ fn build_preset(lang: &str, name: &str) -> Config {
                     show_bar: true,
                     show_percent: true,
                     show_reset: false,
-                    refresh_interval: 120,
                 },
                 path: PathSegment {
                     enabled: false,
@@ -1313,8 +1311,8 @@ fn configure_usage(
                     match result {
                         select::SelectResult::Selected(v) => {
                             config.segments.usage.style = v;
-                            // Skip bar char + bar length since no bar
-                            sub = 4;
+                            // No bar → done
+                            return StepResult::Next;
                         }
                         select::SelectResult::Back => {
                             config.segments.usage = orig;
@@ -1388,54 +1386,11 @@ fn configure_usage(
                         if let Ok(n) = v.parse::<u32>() {
                             config.segments.usage.bar_length = n;
                         }
-                        sub = 4;
-                    }
-                    select::SelectResult::Back => {
-                        config.segments.usage = orig;
-                        sub = 2;
-                    }
-                    select::SelectResult::Cancelled => {
-                        config.segments.usage = orig;
-                        return StepResult::Cancelled;
-                    }
-                }
-            }
-            4 => {
-                // Refresh interval
-                let orig = config.segments.usage.clone();
-                show_screen(config, steps, 1, step_label);
-                let prompt = format!("{} — {}", seg_label("usage"), t("prompt.refreshInterval"));
-                let opts = refresh_interval_options();
-                let current = config.segments.usage.refresh_interval.to_string();
-                let config_ptr = config as *mut Config;
-                let footer = step_progress::render_pending_footer(steps, 1);
-                let result = select::select(
-                    &prompt,
-                    &opts,
-                    Some(&current),
-                    &mut |v: &str| {
-                        let cfg = unsafe { &mut *config_ptr };
-                        if let Ok(n) = v.parse::<u64>() {
-                            cfg.segments.usage.refresh_interval = n;
-                            preview::update_preview_in_place(cfg, PREVIEW_ROW);
-                        }
-                    },
-                    Some(&footer),
-                );
-                match result {
-                    select::SelectResult::Selected(v) => {
-                        if let Ok(n) = v.parse::<u64>() {
-                            config.segments.usage.refresh_interval = n;
-                        }
                         return StepResult::Next;
                     }
                     select::SelectResult::Back => {
                         config.segments.usage = orig;
-                        if config.segments.usage.show_bar {
-                            sub = 3;
-                        } else {
-                            sub = 1;
-                        }
+                        sub = 2;
                     }
                     select::SelectResult::Cancelled => {
                         config.segments.usage = orig;

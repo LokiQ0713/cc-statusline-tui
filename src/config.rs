@@ -101,7 +101,6 @@ pub struct UsageSegment {
     pub show_bar: bool,
     pub show_percent: bool,
     pub show_reset: bool,
-    pub refresh_interval: u64,
 }
 
 impl Default for UsageSegment {
@@ -114,7 +113,6 @@ impl Default for UsageSegment {
             show_bar: false,
             show_percent: true,
             show_reset: true,
-            refresh_interval: 120,
         }
     }
 }

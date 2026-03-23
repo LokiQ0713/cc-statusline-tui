@@ -55,7 +55,7 @@ Aparece un asistente TUI. Eliges cosas. Queda bonito. Fin.
 |----------|----------|----------|----------------|
 | Model | `🔥 Opus4.6` | Muestra qué cerebro estás quemando | Icono (🔥🦊🐢🐰), color |
 | Cost | `$0.42` | El nivel de dolor de tu cartera | Color |
-| Usage | `██░░ 25% 1h43m` | Límite de 5h: barra + % + cuenta atrás | Estilo/carácter/longitud de barra, color, actualización |
+| Usage | `██░░ 25% 1h43m` | Límite de 5h: barra + % + cuenta atrás | Estilo/carácter/longitud de barra, color |
 | Path | `~/project` | Dónde estás | Color, longitud máxima |
 | Git | `main* ↑2↓1` | Rama + cambios sin commit + ahead/behind | Componentes, color |
 | Context | `▓▓▓▓░░░ 60% 600K/1M` | Cuánta ventana de contexto te has comido | Estilo/carácter/longitud de barra, color |
@@ -96,7 +96,7 @@ Si lo ejecutas de nuevo, carga tu configuración existente como valores por defe
 Tus datos no los tocamos. Tranquilo:
 
 - El **segmento de crypto** hace peticiones a la API pública de Binance (`api.binance.com`) — sin autenticación, sin datos personales enviados
-- El **segmento de usage** lee un token OAuth del llavero de macOS (`Claude Code-credentials`) para consultar la API de uso de Anthropic
+- El **segmento de usage** lee directamente los datos JSON que Claude Code pasa por stdin (campo nativo `rate_limits`) — sin llamadas a APIs externas ni acceso al llavero
 - El **npm postinstall** descarga un binario específico para tu plataforma desde GitHub Releases — nada más se descarga
 - Todos los datos se cachean localmente en archivos `/tmp/claude-statusline-*`
 - Sin telemetría, sin analytics, sin envío de datos a ningún otro lugar

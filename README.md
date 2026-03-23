@@ -55,7 +55,7 @@ Too lazy to customize? Pick "Use defaults" and press Enter twice. We don't judge
 |---------|-----------|--------------|---------------|
 | Model | `🔥 Opus4.6` | Shows which brain you're burning through | Icon (🔥🦊🐢🐰), color |
 | Cost | `$0.42` | Your wallet's pain level | Color |
-| Usage | `██░░ 25% 1h43m` | 5h rate limit: bar + % + reset countdown | Bar style/char/length, color, refresh |
+| Usage | `██░░ 25% 1h43m` | 5h rate limit: bar + % + reset countdown | Bar style/char/length, color |
 | Path | `~/project` | Where you are | Color, max length |
 | Git | `main* ↑2↓1` | Branch + dirty flag + ahead/behind | Components, color |
 | Context | `▓▓▓▓░░░ 60% 600K/1M` | How much context window you've eaten | Bar style/char/length, color |
@@ -94,9 +94,9 @@ Re-running the wizard loads your existing config as defaults. Non-destructive. P
 ## Security and Privacy
 
 - The **crypto segment** makes requests to Binance public API (`api.binance.com`) — no authentication required, no personal data sent
-- The **usage segment** reads an OAuth token from the macOS keychain (`Claude Code-credentials`) to query Anthropic's usage API
+- The **usage segment** reads rate limit data directly from Claude Code's native stdin JSON (`rate_limits` field) — no external API calls, no keychain access, works on all platforms
 - The **npm postinstall** downloads a platform-specific binary from GitHub Releases — no other external downloads
-- All data is cached locally in `/tmp/claude-statusline-*` files
+- Crypto data is cached locally in `/tmp/claude-statusline-*` files
 - No telemetry, no analytics, no data sent anywhere else
 - For full details see [SECURITY.md](SECURITY.md)
 

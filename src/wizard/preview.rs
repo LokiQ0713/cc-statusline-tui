@@ -377,7 +377,6 @@ mod tests {
                     show_bar: true,
                     show_percent: false,
                     show_reset: false,
-                    refresh_interval: 120,
                 },
                 path: PathSegment {
                     enabled: false,
@@ -417,7 +416,6 @@ mod tests {
                     show_bar: false,
                     show_percent: true,
                     show_reset: true,
-                    refresh_interval: 120,
                 },
                 model: ModelSegment {
                     enabled: false,

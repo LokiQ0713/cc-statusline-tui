@@ -1,4 +1,4 @@
-//! File-based stale-while-revalidate cache for crypto prices and usage data.
+//! File-based stale-while-revalidate cache for crypto prices.
 //!
 //! Each cache is a plain text file in `/tmp/claude-statusline-*`. The cache
 //! strategy adapts to the short-lived `--render` process:
@@ -14,10 +14,9 @@
 //!
 //! Key functions:
 //! - `ensure_caches_fresh(config)` -- called from `render::run()` to trigger
-//!   refreshes for enabled crypto/usage segments
+//!   refreshes for enabled crypto segment
 //! - `read_or_refresh(cache, lock, max_age, fetch_fn)` -- core SWR logic
 //! - `fetch_crypto(coins)` -- fetches prices from Binance API
-//! - `fetch_usage()` -- fetches 5h usage from Anthropic OAuth API
 
 use std::fs;
 use std::time::{Duration, SystemTime};
@@ -26,8 +25,6 @@ use std::time::{Duration, SystemTime};
 
 const CRYPTO_CACHE: &str = "/tmp/claude-statusline-crypto-cache";
 const CRYPTO_LOCK: &str = "/tmp/claude-statusline-crypto-lock";
-const USAGE_CACHE: &str = "/tmp/claude-statusline-usage-cache";
-const USAGE_LOCK: &str = "/tmp/claude-statusline-usage-lock";
 
 /// HTTP request timeout for all fetchers.
 const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
@@ -38,11 +35,6 @@ const STALE_LOCK_SECS: u64 = 30;
 #[allow(dead_code)]
 pub fn crypto_cache_path() -> &'static str {
     CRYPTO_CACHE
-}
-
-#[allow(dead_code)]
-pub fn usage_cache_path() -> &'static str {
-    USAGE_CACHE
 }
 
 // ─── Cache core ──────────────────────────────────────────────────────────────
@@ -146,54 +138,11 @@ pub fn fetch_crypto(coins: &[String]) -> Option<String> {
     }
 }
 
-// ─── Usage fetcher ───────────────────────────────────────────────────────────
-
-pub fn fetch_usage() -> Option<String> {
-    let token = get_oauth_token()?;
-    let agent = http_agent();
-    let resp = agent
-        .get("https://api.anthropic.com/api/oauth/usage")
-        .set("Authorization", &format!("Bearer {}", token))
-        .set("anthropic-beta", "oauth-2025-04-20")
-        .set("User-Agent", "cc-statusline/2.0.0")
-        .call()
-        .ok()?;
-    let json: serde_json::Value = resp.into_json().ok()?;
-    let utilization = json["five_hour"]["utilization"].as_f64()?;
-    let resets_at = json["five_hour"]["resets_at"].as_str().unwrap_or("");
-    Some(format!("{}|{}", utilization as u64, resets_at))
-}
-
-#[cfg(target_os = "macos")]
-fn get_oauth_token() -> Option<String> {
-    let output = std::process::Command::new("security")
-        .args([
-            "find-generic-password",
-            "-s",
-            "Claude Code-credentials",
-            "-w",
-        ])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let creds: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
-    creds["claudeAiOauth"]["accessToken"]
-        .as_str()
-        .map(String::from)
-}
-
-#[cfg(not(target_os = "macos"))]
-fn get_oauth_token() -> Option<String> {
-    None // TODO: Linux credential reading
-}
-
 // ─── Integration with render pipeline ────────────────────────────────────────
 
 /// Called from the render pipeline to ensure caches are fresh.
 ///
-/// For each enabled segment that relies on a cache file (crypto, usage),
+/// For each enabled segment that relies on a cache file (crypto),
 /// this calls `read_or_refresh` which fetches synchronously when the
 /// cache is stale or missing.
 pub fn ensure_caches_fresh(config: &crate::config::Config) {
@@ -207,12 +156,6 @@ pub fn ensure_caches_fresh(config: &crate::config::Config) {
             s.crypto.refresh_interval,
             move || fetch_crypto(&coins),
         );
-    }
-
-    if s.usage.enabled {
-        read_or_refresh(USAGE_CACHE, USAGE_LOCK, s.usage.refresh_interval, || {
-            fetch_usage()
-        });
     }
 }
 
@@ -332,8 +275,4 @@ mod tests {
         assert_eq!(crypto_cache_path(), "/tmp/claude-statusline-crypto-cache");
     }
 
-    #[test]
-    fn test_usage_cache_path() {
-        assert_eq!(usage_cache_path(), "/tmp/claude-statusline-usage-cache");
-    }
 }

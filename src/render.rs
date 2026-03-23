@@ -9,8 +9,10 @@
 //! - `render_segment()` -- dispatcher to per-segment renderers
 //! - `format_model()` / `format_path()` / `format_size()` -- formatting helpers
 //!
-//! The crypto and usage segments read from file-based caches populated by
+//! The crypto segment reads from a file-based cache populated by
 //! `cache::ensure_caches_fresh()`, which is called at the start of `run()`.
+//! The usage segment reads from `rate_limits` in the stdin JSON (native
+//! Claude Code v2.1.80+ feature).
 
 use serde::Deserialize;
 use std::io::Read;
@@ -27,6 +29,25 @@ pub struct StdinInput {
     pub context_window: StdinContext,
     #[serde(default)]
     pub cost: StdinCost,
+    #[serde(default)]
+    pub rate_limits: StdinRateLimits,
+}
+
+#[derive(Deserialize, Default, Debug)]
+pub struct StdinRateLimits {
+    #[serde(default)]
+    pub five_hour: Option<StdinRateLimitWindow>,
+    #[serde(default)]
+    #[allow(dead_code)] // reserved for future 7-day window display
+    pub seven_day: Option<StdinRateLimitWindow>,
+}
+
+#[derive(Deserialize, Default, Debug, Clone)]
+pub struct StdinRateLimitWindow {
+    #[serde(default)]
+    pub used_percentage: Option<f64>,
+    #[serde(default)]
+    pub resets_at: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -242,7 +263,7 @@ fn render_segment(
         "usage" => {
             let seg = &config.segments.usage;
             if !seg.enabled { return None; }
-            render_usage(seg, now)
+            render_usage(seg, input, now)
         }
         "crypto" => {
             let seg = &config.segments.crypto;
@@ -388,11 +409,14 @@ fn render_context(
     }
 }
 
-fn render_usage(seg: &crate::config::UsageSegment, now: u64) -> Option<String> {
-    let cache = std::fs::read_to_string("/tmp/claude-statusline-usage-cache").ok()?;
-    let mut iter = cache.trim().splitn(2, '|');
-    let pct: u64 = iter.next()?.parse().ok()?;
-    let resets_at = iter.next().unwrap_or("");
+fn render_usage(
+    seg: &crate::config::UsageSegment,
+    input: &StdinInput,
+    now: u64,
+) -> Option<String> {
+    let window = input.rate_limits.five_hour.as_ref()?;
+    let pct = window.used_percentage? as u64;
+    let resets_at = window.resets_at.as_deref().unwrap_or("");
 
     let ratio = pct as f64 / 100.0;
     let mut parts = Vec::new();
@@ -569,7 +593,11 @@ mod tests {
             "model": { "id": "claude-opus-4-6" },
             "workspace": { "cwd": "/Users/loki/project" },
             "context_window": { "context_window_size": 200000, "used_percentage": 0.42 },
-            "cost": { "total_cost_usd": 1.23 }
+            "cost": { "total_cost_usd": 1.23 },
+            "rate_limits": {
+                "five_hour": { "used_percentage": 42.0, "resets_at": "2026-03-23T12:00:00Z" },
+                "seven_day": { "used_percentage": 15.0, "resets_at": "2026-03-28T00:00:00Z" }
+            }
         }"#;
         let input: StdinInput = serde_json::from_str(json).unwrap();
         assert_eq!(input.model.id, "claude-opus-4-6");
@@ -577,6 +605,11 @@ mod tests {
         assert_eq!(input.context_window.context_window_size, Some(200000));
         assert!((input.context_window.used_percentage.unwrap() - 0.42).abs() < f64::EPSILON);
         assert!((input.cost.total_cost_usd.unwrap() - 1.23).abs() < f64::EPSILON);
+        let five_hour = input.rate_limits.five_hour.as_ref().unwrap();
+        assert!((five_hour.used_percentage.unwrap() - 42.0).abs() < f64::EPSILON);
+        assert_eq!(five_hour.resets_at.as_deref(), Some("2026-03-23T12:00:00Z"));
+        let seven_day = input.rate_limits.seven_day.as_ref().unwrap();
+        assert!((seven_day.used_percentage.unwrap() - 15.0).abs() < f64::EPSILON);
     }
 
     #[test]
