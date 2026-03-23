@@ -46,8 +46,22 @@ pub struct StdinRateLimits {
 pub struct StdinRateLimitWindow {
     #[serde(default)]
     pub used_percentage: Option<f64>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_resets_at")]
     pub resets_at: Option<String>,
+}
+
+/// Accept `resets_at` as either a string (ISO 8601) or a number (Unix epoch).
+fn deserialize_resets_at<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let val: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+    match val {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::String(s)) => Ok(Some(s)),
+        Some(serde_json::Value::Number(n)) => Ok(Some(n.to_string())),
+        Some(other) => Ok(Some(other.to_string())),
+    }
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -83,7 +97,33 @@ pub struct StdinCost {
 pub fn read_stdin() -> StdinInput {
     let mut buf = String::new();
     std::io::stdin().read_to_string(&mut buf).unwrap_or_default();
-    serde_json::from_str(&buf).unwrap_or_default()
+
+    // Try direct deserialization first (fast path)
+    if let Ok(input) = serde_json::from_str::<StdinInput>(&buf) {
+        return input;
+    }
+
+    // Fallback: parse as Value, extract each segment individually so a
+    // single field's type mismatch doesn't take down the entire statusline.
+    let val: serde_json::Value = match serde_json::from_str(&buf) {
+        Ok(v) => v,
+        Err(_) => return StdinInput::default(),
+    };
+
+    StdinInput {
+        model: serde_json::from_value(val.get("model").cloned().unwrap_or_default())
+            .unwrap_or_default(),
+        workspace: serde_json::from_value(val.get("workspace").cloned().unwrap_or_default())
+            .unwrap_or_default(),
+        context_window: serde_json::from_value(
+            val.get("context_window").cloned().unwrap_or_default(),
+        )
+        .unwrap_or_default(),
+        cost: serde_json::from_value(val.get("cost").cloned().unwrap_or_default())
+            .unwrap_or_default(),
+        rate_limits: serde_json::from_value(val.get("rate_limits").cloned().unwrap_or_default())
+            .unwrap_or_default(),
+    }
 }
 
 // ─── Formatting helpers ──────────────────────────────────────────────
@@ -459,16 +499,18 @@ fn format_countdown(resets_at: &str, now: u64) -> Option<String> {
         return None;
     }
 
-    // Parse reset epoch from the ISO 8601 timestamp using chrono
-    use chrono::DateTime;
-
-    let dt = DateTime::parse_from_rfc3339(clean)
-        .or_else(|_| {
-            // Try without colon in timezone offset (e.g., +0800)
-            chrono::DateTime::parse_from_str(clean, "%Y-%m-%dT%H:%M:%S%z")
-        })
-        .ok()?;
-    let epoch = dt.timestamp() as u64;
+    // Try parsing as Unix epoch (integer) first, then fall back to ISO 8601
+    let epoch = if let Ok(ts) = clean.parse::<u64>() {
+        ts
+    } else {
+        use chrono::DateTime;
+        let dt = DateTime::parse_from_rfc3339(clean)
+            .or_else(|_| {
+                chrono::DateTime::parse_from_str(clean, "%Y-%m-%dT%H:%M:%S%z")
+            })
+            .ok()?;
+        dt.timestamp() as u64
+    };
 
     if epoch <= now {
         return None;
@@ -934,5 +976,160 @@ mod tests {
         let input = StdinInput::default();
         let result = render_segment("nonexistent", &config, &input, "", 0);
         assert!(result.is_none());
+    }
+
+    // ─── Integration tests: Claude Code v2.1.81 compatibility ────────
+
+    /// Real Claude Code v2.1.81 stdin JSON with integer `resets_at` timestamps.
+    /// This is the exact format that caused the deserialization failure.
+    const REAL_CLAUDE_CODE_JSON: &str = r#"{
+        "session_id": "test-session",
+        "cwd": "/Users/loki/cc",
+        "model": { "id": "claude-opus-4-6[1m]", "display_name": "Opus 4.6 (1M context)" },
+        "workspace": { "current_dir": "/Users/loki/cc", "project_dir": "/Users/loki/cc" },
+        "version": "2.1.81",
+        "cost": { "total_cost_usd": 1.47 },
+        "context_window": { "context_window_size": 1000000, "used_percentage": 8 },
+        "rate_limits": {
+            "five_hour": { "used_percentage": 47, "resets_at": 1774292400 },
+            "seven_day": { "used_percentage": 28, "resets_at": 1774580400 }
+        }
+    }"#;
+
+    #[test]
+    fn test_real_claude_code_json_parses_all_fields() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+
+        // model
+        assert_eq!(input.model.id, "claude-opus-4-6[1m]");
+
+        // workspace
+        assert_eq!(
+            input.workspace.current_dir.as_deref(),
+            Some("/Users/loki/cc")
+        );
+
+        // cost
+        assert!((input.cost.total_cost_usd.unwrap() - 1.47).abs() < 0.01);
+
+        // context_window
+        assert_eq!(input.context_window.context_window_size, Some(1_000_000));
+        assert!((input.context_window.used_percentage.unwrap() - 8.0).abs() < f64::EPSILON);
+
+        // rate_limits — the critical fix: integer resets_at must parse
+        let five_hour = input.rate_limits.five_hour.as_ref().unwrap();
+        assert!((five_hour.used_percentage.unwrap() - 47.0).abs() < f64::EPSILON);
+        assert_eq!(five_hour.resets_at.as_deref(), Some("1774292400"));
+
+        let seven_day = input.rate_limits.seven_day.as_ref().unwrap();
+        assert!((seven_day.used_percentage.unwrap() - 28.0).abs() < f64::EPSILON);
+        assert_eq!(seven_day.resets_at.as_deref(), Some("1774580400"));
+    }
+
+    #[test]
+    fn test_resets_at_accepts_string() {
+        let json = r#"{ "used_percentage": 42.0, "resets_at": "2026-03-23T12:00:00Z" }"#;
+        let w: StdinRateLimitWindow = serde_json::from_str(json).unwrap();
+        assert_eq!(w.resets_at.as_deref(), Some("2026-03-23T12:00:00Z"));
+    }
+
+    #[test]
+    fn test_resets_at_accepts_integer() {
+        let json = r#"{ "used_percentage": 47, "resets_at": 1774292400 }"#;
+        let w: StdinRateLimitWindow = serde_json::from_str(json).unwrap();
+        assert_eq!(w.resets_at.as_deref(), Some("1774292400"));
+    }
+
+    #[test]
+    fn test_resets_at_accepts_null() {
+        let json = r#"{ "used_percentage": 47, "resets_at": null }"#;
+        let w: StdinRateLimitWindow = serde_json::from_str(json).unwrap();
+        assert!(w.resets_at.is_none());
+    }
+
+    #[test]
+    fn test_resets_at_accepts_missing() {
+        let json = r#"{ "used_percentage": 47 }"#;
+        let w: StdinRateLimitWindow = serde_json::from_str(json).unwrap();
+        assert!(w.resets_at.is_none());
+    }
+
+    #[test]
+    fn test_format_countdown_unix_epoch() {
+        // 2 hours from now
+        let now = 1774280000u64;
+        let future = now + 2 * 3600 + 30 * 60;
+        let result = format_countdown(&future.to_string(), now).unwrap();
+        assert_eq!(result, "2h30m");
+    }
+
+    #[test]
+    fn test_format_countdown_iso8601() {
+        // Use a fixed known timestamp
+        let result = format_countdown("2026-03-24T00:00:00Z", 1774243200);
+        // 1774243200 = 2026-03-20T16:00:00Z, so diff is ~3 days
+        assert!(result.is_some());
+        let text = result.unwrap();
+        assert!(text.contains('h') || text.contains('m'));
+    }
+
+    #[test]
+    fn test_resilient_read_stdin_bad_rate_limits_preserves_other_fields() {
+        // Simulate a JSON where rate_limits has an unexpected type
+        let json = r#"{
+            "model": { "id": "claude-opus-4-6" },
+            "cost": { "total_cost_usd": 1.23 },
+            "context_window": { "context_window_size": 200000, "used_percentage": 42.0 },
+            "rate_limits": "invalid_type"
+        }"#;
+        // Direct deserialization fails, but fallback should recover other fields
+        assert!(serde_json::from_str::<StdinInput>(json).is_err());
+
+        // Simulate the fallback path
+        let val: serde_json::Value = serde_json::from_str(json).unwrap();
+        let model: StdinModel =
+            serde_json::from_value(val.get("model").cloned().unwrap_or_default())
+                .unwrap_or_default();
+        let cost: StdinCost =
+            serde_json::from_value(val.get("cost").cloned().unwrap_or_default())
+                .unwrap_or_default();
+        let rate_limits: StdinRateLimits =
+            serde_json::from_value(val.get("rate_limits").cloned().unwrap_or_default())
+                .unwrap_or_default();
+
+        assert_eq!(model.id, "claude-opus-4-6");
+        assert!((cost.total_cost_usd.unwrap() - 1.23).abs() < f64::EPSILON);
+        // rate_limits gracefully defaults
+        assert!(rate_limits.five_hour.is_none());
+    }
+
+    #[test]
+    fn test_all_segments_render_from_real_json() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+        let config = crate::config::Config::default();
+
+        // model renders
+        let model = render_segment("model", &config, &input, "/Users/loki", 0);
+        assert!(model.is_some());
+        assert!(strip_ansi(&model.unwrap()).contains("Opus4.6"));
+
+        // cost renders
+        let cost = render_segment("cost", &config, &input, "/Users/loki", 0);
+        assert!(cost.is_some());
+        assert!(strip_ansi(&cost.unwrap()).contains("$1.47"));
+
+        // path renders
+        let path = render_segment("path", &config, &input, "/Users/loki", 0);
+        assert!(path.is_some());
+
+        // context renders
+        let ctx = render_segment("context", &config, &input, "/Users/loki", 0);
+        assert!(ctx.is_some());
+        assert!(strip_ansi(&ctx.unwrap()).contains("8%"));
+
+        // usage (5h) renders with countdown
+        let usage = render_segment("usage", &config, &input, "/Users/loki", 1774280000);
+        assert!(usage.is_some());
+        assert!(strip_ansi(&usage.unwrap()).contains("47%"));
     }
 }

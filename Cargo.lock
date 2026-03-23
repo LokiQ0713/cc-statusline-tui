@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "cc-statusline-tui"
-version = "2.1.4"
+version = "2.2.0"
 dependencies = [
  "chrono",
  "crossterm",

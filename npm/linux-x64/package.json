@@ -1,0 +1,13 @@
+{
+  "name": "cc-statusline-tui-linux-x64",
+  "version": "0.0.0",
+  "description": "cc-statusline-tui binary for Linux x64",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LokiQ0713/cc-statusline-tui.git"
+  },
+  "files": ["bin/"]
+}

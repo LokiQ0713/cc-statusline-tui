@@ -1,17 +1,19 @@
 {
   "name": "cc-statusline-tui",
-  "version": "2.1.4",
+  "version": "2.2.0",
   "description": "Interactive CLI tool to configure Claude Code statusline",
   "bin": {
-    "cc-statusline": "./cli.js"
-  },
-  "scripts": {
-    "postinstall": "node postinstall.js"
+    "cc-statusline-tui": "./cli.js"
   },
   "files": [
-    "cli.js",
-    "postinstall.js"
+    "cli.js"
   ],
+  "optionalDependencies": {
+    "cc-statusline-tui-darwin-arm64": "2.2.0",
+    "cc-statusline-tui-darwin-x64": "2.2.0",
+    "cc-statusline-tui-linux-x64": "2.2.0",
+    "cc-statusline-tui-linux-arm64": "2.2.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/LokiQ0713/cc-statusline-tui.git"
@@ -31,14 +33,6 @@
   ],
   "author": "LokiQ0713",
   "license": "MIT",
-  "os": [
-    "darwin",
-    "linux"
-  ],
-  "cpu": [
-    "arm64",
-    "x64"
-  ],
   "engines": {
     "node": ">=18"
   }

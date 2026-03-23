@@ -1,0 +1,13 @@
+{
+  "name": "cc-statusline-tui-darwin-arm64",
+  "version": "0.0.0",
+  "description": "cc-statusline-tui binary for macOS ARM64",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LokiQ0713/cc-statusline-tui.git"
+  },
+  "files": ["bin/"]
+}

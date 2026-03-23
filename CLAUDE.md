@@ -36,11 +36,17 @@ Interactive CLI tool to configure the Claude Code statusline.
   - `preview.rs` — Live preview rendering
   - `step_progress.rs` — Step progress indicator
 
-## npm Distribution
+## npm Distribution (esbuild-style platform packages)
 
-- `package.json` — npm package manifest (thin shell, no Rust source)
-- `cli.js` — Forwards execution to `~/.claude/statusline/bin/cc-statusline`
-- `postinstall.js` — Downloads platform-specific binary from GitHub Releases on `npm install`
+- `package.json` — Main npm package (thin wrapper with optionalDependencies)
+- `cli.js` — Resolves platform binary from node_modules, executes it
+- `npm/` — Platform package templates (binary added by CI)
+  - `darwin-arm64/package.json` — macOS ARM64
+  - `darwin-x64/package.json` — macOS x64
+  - `linux-x64/package.json` — Linux x64
+  - `linux-arm64/package.json` — Linux ARM64
+- npm auto-installs only the matching platform package (via `os`/`cpu` fields)
+- No postinstall scripts, no runtime downloads
 
 ## Key Directories
 

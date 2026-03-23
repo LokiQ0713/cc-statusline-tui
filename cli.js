@@ -1,42 +1,37 @@
 #!/usr/bin/env node
-const { execFileSync, execSync } = require('child_process');
-const { join } = require('path');
-const { homedir } = require('os');
-const { existsSync, readFileSync } = require('fs');
+const { execFileSync } = require('child_process');
+const path = require('path');
 
-const bin = join(homedir(), '.claude', 'statusline', 'bin', 'cc-statusline');
-const versionFile = join(homedir(), '.claude', 'statusline', 'bin', '.version');
-const expectedVersion = require('./package.json').version;
+const PLATFORMS = {
+  'darwin-arm64': 'cc-statusline-tui-darwin-arm64',
+  'darwin-x64': 'cc-statusline-tui-darwin-x64',
+  'linux-x64': 'cc-statusline-tui-linux-x64',
+  'linux-arm64': 'cc-statusline-tui-linux-arm64',
+};
 
-// Check if binary exists and version matches
-let needsUpdate = !existsSync(bin);
-if (!needsUpdate) {
-  try {
-    const installed = readFileSync(versionFile, 'utf8').trim();
-    needsUpdate = installed !== expectedVersion;
-  } catch {
-    needsUpdate = true;
-  }
+const key = `${process.platform}-${process.arch}`;
+const pkg = PLATFORMS[key];
+
+if (!pkg) {
+  console.error(`[cc-statusline] Unsupported platform: ${key}`);
+  console.error('Supported: darwin-arm64, darwin-x64, linux-x64, linux-arm64');
+  console.error('Build from source: cargo install cc-statusline-tui');
+  process.exit(1);
 }
 
-if (needsUpdate) {
-  console.log(`[cc-statusline] Updating binary to v${expectedVersion}...`);
-  try {
-    execSync(`node "${join(__dirname, 'postinstall.js')}"`, { stdio: 'inherit' });
-  } catch {
-    console.error('[cc-statusline] Failed to update binary. Try: npx cc-statusline-tui@latest');
-    process.exit(1);
-  }
-}
-
-if (!existsSync(bin)) {
-  console.error('cc-statusline binary not found at', bin);
-  console.error('Try reinstalling: npx cc-statusline-tui@latest');
+let binPath;
+try {
+  // Resolve binary from the platform-specific npm package
+  const pkgDir = path.dirname(require.resolve(`${pkg}/package.json`));
+  binPath = path.join(pkgDir, 'bin', 'cc-statusline');
+} catch {
+  console.error(`[cc-statusline] Platform package "${pkg}" not installed.`);
+  console.error('Try: npx cc-statusline-tui@latest');
   process.exit(1);
 }
 
 try {
-  execFileSync(bin, process.argv.slice(2), { stdio: 'inherit' });
+  execFileSync(binPath, process.argv.slice(2), { stdio: 'inherit' });
 } catch (e) {
   if (e.status) process.exit(e.status);
   process.exit(1);

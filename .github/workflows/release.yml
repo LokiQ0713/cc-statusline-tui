@@ -14,12 +14,16 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             os: macos-latest
+            npm-dir: darwin-arm64
           - target: x86_64-apple-darwin
             os: macos-latest
+            npm-dir: darwin-x64
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
+            npm-dir: linux-x64
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
+            npm-dir: linux-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -46,15 +50,36 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package
+      - name: Package for GitHub Release
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../cc-statusline-${{ matrix.target }}.tar.gz cc-statusline
+
+      - name: Prepare npm platform package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p npm/${{ matrix.npm-dir }}/bin
+          cp target/${{ matrix.target }}/release/cc-statusline npm/${{ matrix.npm-dir }}/bin/
+          chmod 755 npm/${{ matrix.npm-dir }}/bin/cc-statusline
+          # Update version in platform package.json
+          node -e "
+            const pkg = require('./npm/${{ matrix.npm-dir }}/package.json');
+            pkg.version = '${VERSION}';
+            require('fs').writeFileSync(
+              './npm/${{ matrix.npm-dir }}/package.json',
+              JSON.stringify(pkg, null, 2) + '\n'
+            );
+          "
 
       - uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.target }}
           path: cc-statusline-${{ matrix.target }}.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.npm-dir }}
+          path: npm/${{ matrix.npm-dir }}/
 
   release:
     needs: build
@@ -85,7 +110,7 @@ jobs:
             *.tar.gz
 
   publish-npm:
-    needs: release
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,13 +118,44 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - name: Publish to npm
-        run: npm publish
+
+      # Download all platform package artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-darwin-arm64
+          path: npm/darwin-arm64/
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-darwin-x64
+          path: npm/darwin-x64/
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-linux-x64
+          path: npm/linux-x64/
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-linux-arm64
+          path: npm/linux-arm64/
+
+      # Publish platform packages first, then main package
+      - name: Publish platform packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for dir in npm/darwin-arm64 npm/darwin-x64 npm/linux-x64 npm/linux-arm64; do
+            echo "Publishing $(node -p "require('./$dir/package.json').name")..."
+            cd "$dir"
+            npm publish --access public || true
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: Publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
 
   publish-crate:
-    needs: release
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
