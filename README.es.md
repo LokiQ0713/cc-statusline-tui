@@ -20,7 +20,7 @@ Elige tu veneno:
 ### npm
 
 ```bash
-npx cc-statusline-tui
+npx cc-statusline-tui@latest
 ```
 
 ### Cargo
@@ -124,7 +124,7 @@ npm uninstall -g cc-statusline-tui
 
 | Problema | Solución |
 |----------|----------|
-| "Binary not found" | Ejecuta `npx cc-statusline-tui` de nuevo para volver a descargar |
+| "Binary not found" | Ejecuta `npx cc-statusline-tui@latest` de nuevo para volver a descargar |
 | Error "Is a directory" | Verifica que `~/.claude/statusline/bin/cc-statusline` sea un archivo, no un directorio |
 | Crypto no se muestra | Elimina el directorio `/tmp/claude-statusline-crypto-lock` si existe (bloqueo obsoleto) |
 | Los cambios no se ven | Reinicia Claude Code después de guardar la configuración |

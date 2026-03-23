@@ -73,7 +73,7 @@ jobs:
           cat > /tmp/release-notes.md << 'EOF'
           ## Install
 
-          - **npm**: `npx cc-statusline-tui`
+          - **npm**: `npx cc-statusline-tui@latest`
           - **cargo**: `cargo install cc-statusline-tui`
           - **brew**: `brew tap LokiQ0713/cc-statusline-tui && brew install cc-statusline`
           EOF

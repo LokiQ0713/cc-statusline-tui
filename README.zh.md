@@ -20,7 +20,7 @@
 ### npm
 
 ```bash
-npx cc-statusline-tui
+npx cc-statusline-tui@latest
 ```
 
 ### Cargo
@@ -126,7 +126,7 @@ npm uninstall -g cc-statusline-tui
 
 | 问题 | 解决办法 |
 |------|---------|
-| "Binary not found" | 重新跑一遍 `npx cc-statusline-tui` 重新下载 |
+| "Binary not found" | 重新跑一遍 `npx cc-statusline-tui@latest` 重新下载 |
 | "Is a directory" 错误 | 检查 `~/.claude/statusline/bin/cc-statusline` 是文件不是目录 |
 | 加密货币不显示 | 删掉 `/tmp/claude-statusline-crypto-lock` 目录（可能是过期的锁） |
 | 改了配置没生效 | 保存后重启 Claude Code |
