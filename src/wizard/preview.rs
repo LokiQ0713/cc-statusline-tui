@@ -258,6 +258,10 @@ mod tests {
                     enabled: false,
                     ..Default::default()
                 },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
             ..Default::default()
         };
@@ -296,6 +300,10 @@ mod tests {
                     ..Default::default()
                 },
                 crypto: CryptoSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                usage_7d: UsageSegment {
                     enabled: false,
                     ..Default::default()
                 },
@@ -345,6 +353,10 @@ mod tests {
                     enabled: false,
                     ..Default::default()
                 },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
             ..Default::default()
         };
@@ -377,6 +389,7 @@ mod tests {
                     show_bar: true,
                     show_percent: false,
                     show_reset: false,
+                    label: String::new(),
                 },
                 path: PathSegment {
                     enabled: false,
@@ -391,6 +404,10 @@ mod tests {
                     ..Default::default()
                 },
                 crypto: CryptoSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                usage_7d: UsageSegment {
                     enabled: false,
                     ..Default::default()
                 },
@@ -416,6 +433,7 @@ mod tests {
                     show_bar: false,
                     show_percent: true,
                     show_reset: true,
+                    label: String::new(),
                 },
                 model: ModelSegment {
                     enabled: false,
@@ -438,6 +456,10 @@ mod tests {
                     ..Default::default()
                 },
                 crypto: CryptoSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
+                usage_7d: UsageSegment {
                     enabled: false,
                     ..Default::default()
                 },
@@ -486,6 +508,10 @@ mod tests {
                     refresh_interval: 60,
                     coins: vec!["BTC".into()],
                 },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
+                },
             },
             ..Default::default()
         };
@@ -526,6 +552,10 @@ mod tests {
                     style: "green".into(),
                     refresh_interval: 60,
                     coins: vec!["BTC".into(), "ETH".into(), "SOL".into()],
+                },
+                usage_7d: UsageSegment {
+                    enabled: false,
+                    ..Default::default()
                 },
             },
             ..Default::default()

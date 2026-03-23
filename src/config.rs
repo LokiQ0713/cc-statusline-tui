@@ -101,6 +101,8 @@ pub struct UsageSegment {
     pub show_bar: bool,
     pub show_percent: bool,
     pub show_reset: bool,
+    #[serde(default)]
+    pub label: String,
 }
 
 impl Default for UsageSegment {
@@ -113,6 +115,7 @@ impl Default for UsageSegment {
             show_bar: false,
             show_percent: true,
             show_reset: true,
+            label: String::new(),
         }
     }
 }
@@ -210,6 +213,8 @@ pub struct Segments {
     pub model: ModelSegment,
     pub cost: CostSegment,
     pub usage: UsageSegment,
+    #[serde(default)]
+    pub usage_7d: UsageSegment,
     pub path: PathSegment,
     pub git: GitSegment,
     pub context: ContextSegment,
@@ -223,23 +228,57 @@ pub struct Segments {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub lang: String,
+
+    /// Primary layout: each inner Vec is one row of segments.
+    /// e.g. `[["model","cost","context"], ["usage","usage_7d"]]`
+    #[serde(default)]
+    pub rows: Vec<Vec<String>>,
+
+    /// Legacy: single-row order (used when `rows` is empty).
+    #[serde(default)]
     pub order: Vec<String>,
+
+    /// Legacy: second row (used when `rows` is empty).
+    #[serde(default, alias = "order_row2", rename = "orderRow2")]
+    pub order_row2: Vec<String>,
+
     pub segments: Segments,
+}
+
+impl Config {
+    /// Maximum number of status line rows.
+    const MAX_ROWS: usize = 3;
+
+    /// Return effective rows, preferring `rows` over legacy `order`+`order_row2`.
+    /// Capped at [`MAX_ROWS`] rows.
+    pub fn effective_rows(&self) -> Vec<&[String]> {
+        let rows: Vec<&[String]> = if !self.rows.is_empty() {
+            self.rows.iter().map(|r| r.as_slice()).collect()
+        } else {
+            let mut r = vec![self.order.as_slice()];
+            if !self.order_row2.is_empty() {
+                r.push(self.order_row2.as_slice());
+            }
+            r
+        };
+        rows.into_iter().take(Self::MAX_ROWS).collect()
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             lang: String::new(),
+            rows: Vec::new(),
             order: vec![
                 "model".into(),
                 "cost".into(),
-                "usage".into(),
                 "path".into(),
                 "git".into(),
                 "context".into(),
                 "crypto".into(),
             ],
+            order_row2: Vec::new(),
             segments: Segments::default(),
         }
     }
