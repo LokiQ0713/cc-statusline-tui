@@ -34,7 +34,7 @@ use crate::i18n::{self, t, tf, SUPPORTED_LANGS};
 const PREVIEW_ROW: u16 = 3;
 
 /// All seven segment keys in canonical order.
-const ALL_SEGMENTS: &[&str] = &["model", "cost", "usage", "path", "git", "context", "crypto"];
+const ALL_SEGMENTS: &[&str] = &["model", "cost", "usage", "usage_7d", "path", "git", "context", "crypto"];
 
 // ── Step result ─────────────────────────────────────────────────────────────
 
@@ -882,6 +882,7 @@ fn seg_label(key: &str) -> &'static str {
         "model" => t("seg.model"),
         "cost" => t("seg.cost"),
         "usage" => t("seg.usage"),
+        "usage_7d" => t("seg.usage7d"),
         "path" => t("seg.path"),
         "git" => t("seg.git"),
         "context" => t("seg.context"),
@@ -895,7 +896,8 @@ fn seg_hint(key: &str) -> &'static str {
     match key {
         "model" => "Opus4.6",
         "cost" => "$0.42",
-        "usage" => "25%",
+        "usage" => "5h: 25%",
+        "usage_7d" => "7d: 15%",
         "path" => "~/Desktop",
         "git" => "main*",
         "context" => "60% 600K/1M",
@@ -919,6 +921,7 @@ fn is_seg_enabled(config: &Config, key: &str) -> bool {
         "model" => config.segments.model.enabled,
         "cost" => config.segments.cost.enabled,
         "usage" => config.segments.usage.enabled,
+        "usage_7d" => config.segments.usage_7d.enabled,
         "path" => config.segments.path.enabled,
         "git" => config.segments.git.enabled,
         "context" => config.segments.context.enabled,
@@ -932,6 +935,7 @@ fn set_seg_enabled(config: &mut Config, key: &str, enabled: bool) {
         "model" => config.segments.model.enabled = enabled,
         "cost" => config.segments.cost.enabled = enabled,
         "usage" => config.segments.usage.enabled = enabled,
+        "usage_7d" => config.segments.usage_7d.enabled = enabled,
         "path" => config.segments.path.enabled = enabled,
         "git" => config.segments.git.enabled = enabled,
         "context" => config.segments.context.enabled = enabled,
@@ -1073,6 +1077,13 @@ fn configure_segment(
         "model" => configure_model(config, steps, step_label),
         "cost" => configure_cost(config, steps, step_label),
         "usage" => configure_usage(config, steps, step_label),
+        "usage_7d" => {
+            // Reuse configure_usage by temporarily swapping usage_7d into the usage slot
+            std::mem::swap(&mut config.segments.usage, &mut config.segments.usage_7d);
+            let result = configure_usage(config, steps, step_label);
+            std::mem::swap(&mut config.segments.usage, &mut config.segments.usage_7d);
+            result
+        }
         "path" => configure_path(config, steps, step_label),
         "git" => configure_git(config, steps, step_label),
         "context" => configure_context(config, steps, step_label),
