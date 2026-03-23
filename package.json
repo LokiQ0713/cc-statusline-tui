@@ -1,6 +1,6 @@
 {
   "name": "cc-statusline-tui",
-  "version": "2.0.8",
+  "version": "2.1.0",
   "description": "Interactive CLI tool to configure Claude Code statusline",
   "bin": {
     "cc-statusline": "./cli.js"
