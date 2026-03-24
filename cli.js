@@ -30,9 +30,23 @@ try {
   process.exit(1);
 }
 
+// Ensure binary is executable (self-healing for tarballs with wrong perms)
+const fs = require('fs');
+try {
+  fs.accessSync(binPath, fs.constants.X_OK);
+} catch {
+  try { fs.chmodSync(binPath, 0o755); } catch {}
+}
+
 try {
   execFileSync(binPath, process.argv.slice(2), { stdio: 'inherit' });
 } catch (e) {
   if (e.status) process.exit(e.status);
+  if (e.code === 'EACCES') {
+    console.error(`[cc-statusline] Permission denied: ${binPath}`);
+    console.error('Try: chmod +x ' + binPath);
+  } else if (e.code) {
+    console.error(`[cc-statusline] Failed to run binary: ${e.message}`);
+  }
   process.exit(1);
 }

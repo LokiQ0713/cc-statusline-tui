@@ -137,6 +137,10 @@ jobs:
           name: npm-linux-arm64
           path: npm/linux-arm64/
 
+      # Ensure binaries are executable (artifacts may strip permissions)
+      - name: Fix binary permissions
+        run: chmod +x npm/*/bin/cc-statusline
+
       # Publish platform packages first, then main package
       - name: Publish platform packages
         env:
