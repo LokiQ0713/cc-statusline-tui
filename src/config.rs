@@ -209,11 +209,11 @@ impl Default for CryptoSegment {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Segments {
     pub model: ModelSegment,
     pub cost: CostSegment,
     pub usage: UsageSegment,
-    #[serde(default)]
     pub usage_7d: UsageSegment,
     pub path: PathSegment,
     pub git: GitSegment,
