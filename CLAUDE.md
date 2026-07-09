@@ -6,7 +6,7 @@ Interactive CLI tool to configure the Claude Code statusline.
 
 - Package: `cc-statusline-tui`
 - GitHub: `https://github.com/LokiQ0713/cc-statusline-tui`
-- Registry: npm public registry (ships prebuilt Rust binaries via npm postinstall) + crates.io
+- Registry: npm public registry (ships prebuilt Rust binaries as platform-specific optionalDependencies, no postinstall) + crates.io
 - Install: `npx cc-statusline-tui` or `cargo install cc-statusline-tui`
 
 ## Tech Stack
@@ -69,21 +69,30 @@ cargo clippy -- -D warnings  # Lint check
 
 ### Release a new version
 
+`npm version` does NOT sync the Rust side (there are no `scripts` in `package.json`), so bump the version manually across every file, then tag and push:
+
 ```bash
-cargo test && cargo clippy -- -D warnings   # verify locally first
-npm version patch   # bumps package.json + Cargo.toml, creates commit + v* tag
-git push origin main --tags                  # triggers release.yml
+cargo test && cargo clippy -- -D warnings    # verify locally first
+# Bump to X.Y.Z in ALL of:
+#   - Cargo.toml    → package.version
+#   - package.json  → "version" AND all 4 optionalDependencies
+cargo check                                   # syncs the version in Cargo.lock
+git commit -am "release: vX.Y.Z"
+git tag vX.Y.Z
+git push origin main --tags                   # triggers release.yml
 ```
 
-Version files to keep in sync: `Cargo.toml`, `package.json`, `npm/*/package.json` (platform versions updated by CI).
+Choose X.Y.Z by semver: patch = bugfix, minor = new feature, major = breaking (removed/renamed feature or changed config schema).
+
+Version must stay in sync across: `Cargo.toml`, `Cargo.lock` (the `cc-statusline-tui` entry), `package.json` (`version` + all `optionalDependencies`). `npm/*/package.json` platform versions are written by CI at release time.
 
 ### Common release failures
 
-- `ENEEDAUTH` / `E403` → check `NPM_TOKEN` or bump version
+- `ENEEDAUTH` / `E403` → check `NPM_TOKEN`; a published version can't be overwritten, so bump instead
 - crates.io failed → check `CARGO_REGISTRY_TOKEN`
 - GitHub Release missing → ensure `permissions: contents: write` in release.yml
 - `upload-artifact`/`download-artifact` strips file permissions → publish-npm has explicit `chmod +x`
-- `npm version` only changes package.json → manually sync Cargo.toml
+- Version mismatch across `Cargo.toml` / `Cargo.lock` / `package.json` → publish jobs fail; bump all of them together
 
 ## Error Handling Convention
 
@@ -99,3 +108,6 @@ See https://github.com/LokiQ0713/cc-statusline-tui#troubleshooting
 - Binary output: `~/.claude/statusline/bin` (compiled Rust binary)
 - Config file: `~/.claude/statusline/config.json`
 - Auto-updates: `statusLine` field in `~/.claude/settings.json`
+- Fixed layout (not user-reorderable): row 1 = model · cost · path · context; row 2 = 5h · 7d usage (no bars). The wizard only picks a language, then installs; `render` still reads `rows` from `config.json`, so the layout lives in `Config::default()`.
+- Model segment appends the reasoning effort (`effort.level` from the stdin JSON) when the model reports one; absent otherwise.
+- Context bar uses the `semantic` style: a green→yellow→red traffic-light gradient interpolated in RGB (green at 0%, yellow at 50%, red at 100%).
