@@ -48,7 +48,7 @@ impl Default for ModelSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "cyan".into(),
+            style: "ultrathink".into(),
             icon: "\u{1f525}".into(), // fire emoji
         }
     }
@@ -110,7 +110,7 @@ impl Default for PathSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "ultrathink".into(),
+            style: "cyan".into(),
             max_length: 15,
         }
     }
