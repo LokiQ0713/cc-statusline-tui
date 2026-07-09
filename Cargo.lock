@@ -47,7 +47,7 @@ dependencies = [
 
 [[package]]
 name = "cc-statusline-tui"
-version = "4.0.0"
+version = "4.0.1"
 dependencies = [
  "chrono",
  "dirs",
