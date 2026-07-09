@@ -8,7 +8,6 @@
 //! All configuration, rendering, and installation logic is delegated to
 //! submodules. See each module's doc comment for details.
 
-mod cache;
 mod config;
 mod i18n;
 mod install;

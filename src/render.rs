@@ -9,10 +9,9 @@
 //! - `render_segment()` -- dispatcher to per-segment renderers
 //! - `format_model()` / `format_path()` / `format_size()` -- formatting helpers
 //!
-//! The crypto segment reads from a file-based cache populated by
-//! `cache::ensure_caches_fresh()`, which is called at the start of `run()`.
 //! The usage segment reads from `rate_limits` in the stdin JSON (native
-//! Claude Code v2.1.80+ feature).
+//! Claude Code v2.1.80+ feature). The model segment appends the reasoning
+//! `effort.level` when the current model reports one.
 
 use serde::Deserialize;
 use std::io::Read;
@@ -31,6 +30,17 @@ pub struct StdinInput {
     pub cost: StdinCost,
     #[serde(default)]
     pub rate_limits: StdinRateLimits,
+    #[serde(default)]
+    pub effort: StdinEffort,
+}
+
+/// Reasoning effort reported by Claude Code. Present only when the current
+/// model supports a reasoning-effort parameter; absent otherwise.
+#[derive(Deserialize, Default, Debug)]
+pub struct StdinEffort {
+    /// One of `low` / `medium` / `high` / `xhigh` / `max`.
+    #[serde(default)]
+    pub level: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -122,6 +132,8 @@ pub fn read_stdin() -> StdinInput {
         cost: serde_json::from_value(val.get("cost").cloned().unwrap_or_default())
             .unwrap_or_default(),
         rate_limits: serde_json::from_value(val.get("rate_limits").cloned().unwrap_or_default())
+            .unwrap_or_default(),
+        effort: serde_json::from_value(val.get("effort").cloned().unwrap_or_default())
             .unwrap_or_default(),
     }
 }
@@ -252,9 +264,6 @@ pub fn run() {
         .unwrap_or_default()
         .as_secs();
 
-    // Ensure crypto/usage caches are fresh (spawns background refresh if stale)
-    crate::cache::ensure_caches_fresh(&config);
-
     let rows = config.effective_rows();
     let mut first = true;
     for row_keys in &rows {
@@ -318,11 +327,6 @@ fn render_segment(
             if !seg.enabled { return None; }
             render_usage_window(seg, input.rate_limits.seven_day.as_ref(), "7d", now)
         }
-        "crypto" => {
-            let seg = &config.segments.crypto;
-            if !seg.enabled { return None; }
-            render_crypto(seg, now)
-        }
         _ => None,
     }
 }
@@ -338,11 +342,16 @@ fn render_model(
         return None;
     }
     let model_name = format_model(&input.model.id);
-    let text = if seg.icon.is_empty() {
+    let mut text = if seg.icon.is_empty() {
         model_name
     } else {
         format!("{} {}", seg.icon, model_name)
     };
+    // Append reasoning effort (e.g. "high") when the model reports one.
+    if let Some(level) = input.effort.level.as_deref().filter(|l| !l.is_empty()) {
+        text.push(' ');
+        text.push_str(level);
+    }
     Some(crate::styles::format_colored(&seg.style, &text, now))
 }
 
@@ -554,29 +563,6 @@ fn format_countdown(resets_at: &str, now: u64) -> Option<String> {
         Some(format!("{}h{}m", hours, mins))
     } else {
         Some(format!("{}m", mins))
-    }
-}
-
-fn render_crypto(seg: &crate::config::CryptoSegment, now: u64) -> Option<String> {
-    let cache = std::fs::read_to_string("/tmp/claude-statusline-crypto-cache").ok()?;
-    let prices: Vec<&str> = cache.trim().split('|').collect();
-    let display: Vec<String> = seg
-        .coins
-        .iter()
-        .zip(prices.iter())
-        .map(|(coin, price)| {
-            let p: f64 = price.parse().unwrap_or(0.0);
-            format!("{}:${:.0}", coin, p)
-        })
-        .collect();
-    if display.is_empty() {
-        None
-    } else {
-        Some(crate::styles::format_colored(
-            &seg.style,
-            &display.join(" "),
-            now,
-        ))
     }
 }
 
@@ -929,55 +915,51 @@ mod tests {
     }
 
     #[test]
-    fn test_render_crypto_from_cache() {
-        use std::io::Write;
-        // Write a temp cache file
-        let cache_path = "/tmp/claude-statusline-crypto-cache-test";
-        {
-            let mut f = std::fs::File::create(cache_path).unwrap();
-            write!(f, "84532.50|3214.75").unwrap();
-        }
-
-        let seg = crate::config::CryptoSegment {
+    fn test_render_model_with_effort() {
+        let seg = crate::config::ModelSegment {
             enabled: true,
-            style: "green".into(),
-            refresh_interval: 60,
-            coins: vec!["BTC".into(), "ETH".into()],
+            style: "cyan".into(),
+            icon: "\u{1f525}".into(),
         };
-
-        // Read cache and verify parsing logic
-        let cache = std::fs::read_to_string(cache_path).unwrap();
-        let prices: Vec<&str> = cache.trim().split('|').collect();
-        let display: Vec<String> = seg
-            .coins
-            .iter()
-            .zip(prices.iter())
-            .map(|(coin, price)| {
-                let p: f64 = price.parse().unwrap_or(0.0);
-                format!("{}:${:.0}", coin, p)
-            })
-            .collect();
-        let text = display.join(" ");
-        assert_eq!(text, "BTC:$84532 ETH:$3215");
-
-        // Clean up
-        let _ = std::fs::remove_file(cache_path);
+        let input = StdinInput {
+            model: StdinModel { id: "claude-opus-4-8".into() },
+            effort: StdinEffort { level: Some("high".into()) },
+            ..Default::default()
+        };
+        let result = render_model(&seg, &input, 0).unwrap();
+        let visible = strip_ansi(&result);
+        assert_eq!(visible, "\u{1f525} Opus4.8 high");
     }
 
     #[test]
-    fn test_render_crypto_no_cache() {
-        // Remove cache file to ensure None
-        let _ = std::fs::remove_file("/tmp/claude-statusline-crypto-cache");
-        let seg = crate::config::CryptoSegment {
+    fn test_render_model_effort_absent() {
+        let seg = crate::config::ModelSegment {
             enabled: true,
-            style: "green".into(),
-            refresh_interval: 60,
-            coins: vec!["BTC".into()],
+            style: "cyan".into(),
+            icon: "".into(),
         };
-        let _result = render_crypto(&seg, 0);
-        // If file doesn't exist, returns None
-        // (it may exist from other tests, so just check it handles gracefully)
-        // This test mainly ensures no panic
+        let input = StdinInput {
+            model: StdinModel { id: "claude-opus-4-8".into() },
+            effort: StdinEffort { level: None },
+            ..Default::default()
+        };
+        let result = render_model(&seg, &input, 0).unwrap();
+        let visible = strip_ansi(&result);
+        assert_eq!(visible, "Opus4.8");
+    }
+
+    #[test]
+    fn test_effort_deserializes() {
+        let json = r#"{ "model": { "id": "claude-opus-4-8" }, "effort": { "level": "xhigh" } }"#;
+        let input: StdinInput = serde_json::from_str(json).unwrap();
+        assert_eq!(input.effort.level.as_deref(), Some("xhigh"));
+    }
+
+    #[test]
+    fn test_effort_absent_deserializes() {
+        let json = r#"{ "model": { "id": "claude-opus-4-8" } }"#;
+        let input: StdinInput = serde_json::from_str(json).unwrap();
+        assert!(input.effort.level.is_none());
     }
 
     #[test]

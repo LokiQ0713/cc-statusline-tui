@@ -1,8 +1,7 @@
 //! Internationalization with 7 languages (en/zh/ja/ko/es/pt/ru).
 //!
-//! Provides two translation functions:
+//! Provides a static translation lookup:
 //! - `t(key)` -- static translation lookup, returns `&'static str`
-//! - `tf(key, args)` -- template translation with positional `{0}`, `{1}` placeholders
 //!
 //! The active language is stored in an `AtomicU8` static for zero-cost switching.
 //! Call `set_lang("zh")` to change; unknown codes default to English.
@@ -58,39 +57,6 @@ pub fn t(key: &str) -> &'static str {
         6 => t_ru(key),
         _ => t_en(key),
     }
-}
-
-/// Look up a dynamic translation by key, replacing positional placeholders with `args`.
-///
-/// Placeholders are `{0}`, `{1}`, etc., corresponding to the index in `args`.
-/// Returns the key itself (no substitution) if the key is not found.
-pub fn tf(key: &str, args: &[&str]) -> String {
-    let template = match LANG.load(Ordering::Relaxed) {
-        1 => tf_zh(key),
-        2 => tf_ja(key),
-        3 => tf_ko(key),
-        4 => tf_es(key),
-        5 => tf_pt(key),
-        6 => tf_ru(key),
-        _ => tf_en(key),
-    };
-    match template {
-        Some(tmpl) => substitute(tmpl, args),
-        None => key.to_string(),
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-fn substitute(template: &str, args: &[&str]) -> String {
-    let mut result = template.to_string();
-    for (i, arg) in args.iter().enumerate() {
-        let placeholder = format!("{{{}}}", i);
-        result = result.replace(&placeholder, arg);
-    }
-    result
 }
 
 // ---------------------------------------------------------------------------
@@ -185,7 +151,7 @@ fn t_en(key: &str) -> &'static str {
         // Bar styles
         "barStyle.gradient" => "Ultrathink Gradient (Rainbow)",
         "barStyle.trafficLight" => "Traffic light (G→Y→R)",
-        "barStyle.trafficLightHint" => "\u{2264}30% green / \u{2264}60% yellow / >60% red",
+        "barStyle.trafficLightHint" => "0% green \u{2192} 50% yellow \u{2192} 100% red gradient",
 
         // Bar characters
         "char.shade" => "▓░ Shade",
@@ -306,7 +272,7 @@ fn t_zh(key: &str) -> &'static str {
 
         "barStyle.gradient" => "Ultrathink 渐变 (彩虹)",
         "barStyle.trafficLight" => "红绿灯 (绿→黄→红)",
-        "barStyle.trafficLightHint" => "\u{2264}30% 绿 / \u{2264}60% 黄 / >60% 红",
+        "barStyle.trafficLightHint" => "0% 绿 \u{2192} 50% 黄 \u{2192} 100% 红 渐变",
 
         "char.shade" => "▓░ 阴影",
         "char.fullBlock" => "█░ 全块",
@@ -421,7 +387,7 @@ fn t_ja(key: &str) -> &'static str {
 
         "barStyle.gradient" => "Ultrathink グラデーション (レインボー)",
         "barStyle.trafficLight" => "信号灯 (緑→黄→赤)",
-        "barStyle.trafficLightHint" => "\u{2264}30% 緑 / \u{2264}60% 黄 / >60% 赤",
+        "barStyle.trafficLightHint" => "0% 緑 \u{2192} 50% 黄 \u{2192} 100% 赤",
 
         "char.shade" => "▓░ Shade",
         "char.fullBlock" => "█░ Full block",
@@ -536,7 +502,7 @@ fn t_ko(key: &str) -> &'static str {
 
         "barStyle.gradient" => "Ultrathink 그라데이션 (레인보우)",
         "barStyle.trafficLight" => "신호등 (초록→노랑→빨강)",
-        "barStyle.trafficLightHint" => "\u{2264}30% 초록 / \u{2264}60% 노랑 / >60% 빨강",
+        "barStyle.trafficLightHint" => "0% 초록 \u{2192} 50% 노랑 \u{2192} 100% 빨강",
 
         "char.shade" => "▓░ Shade",
         "char.fullBlock" => "█░ Full block",
@@ -651,7 +617,7 @@ fn t_es(key: &str) -> &'static str {
 
         "barStyle.gradient" => "Ultrathink Degradado (Arcoíris)",
         "barStyle.trafficLight" => "Semáforo (V→A→R)",
-        "barStyle.trafficLightHint" => "\u{2264}30% verde / \u{2264}60% amarillo / >60% rojo",
+        "barStyle.trafficLightHint" => "0% verde \u{2192} 50% amarillo \u{2192} 100% rojo",
 
         "char.shade" => "▓░ Shade",
         "char.fullBlock" => "█░ Full block",
@@ -766,7 +732,7 @@ fn t_pt(key: &str) -> &'static str {
 
         "barStyle.gradient" => "Ultrathink Gradiente (Arco-íris)",
         "barStyle.trafficLight" => "Semáforo (V→A→V)",
-        "barStyle.trafficLightHint" => "\u{2264}30% verde / \u{2264}60% amarelo / >60% vermelho",
+        "barStyle.trafficLightHint" => "0% verde \u{2192} 50% amarelo \u{2192} 100% vermelho",
 
         "char.shade" => "▓░ Shade",
         "char.fullBlock" => "█░ Full block",
@@ -881,7 +847,7 @@ fn t_ru(key: &str) -> &'static str {
 
         "barStyle.gradient" => "Ultrathink Градиент (Радуга)",
         "barStyle.trafficLight" => "Светофор (З→Ж→К)",
-        "barStyle.trafficLightHint" => "\u{2264}30% зелёный / \u{2264}60% жёлтый / >60% красный",
+        "barStyle.trafficLightHint" => "0% зелёный \u{2192} 50% жёлтый \u{2192} 100% красный",
 
         "char.shade" => "▓░ Shade",
         "char.fullBlock" => "█░ Full block",
@@ -914,160 +880,6 @@ fn t_ru(key: &str) -> &'static str {
 }
 
 // ---------------------------------------------------------------------------
-// English — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_en(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 Configure ({0}/{1})"),
-        "step.reorderN" => Some("2/3 Reorder ({0}/{1})"),
-        "msg.missingDeps" => Some("Missing dependencies: {0}"),
-        "msg.installDeps" => Some("Please install: brew install {0}"),
-        "prompt.currentOrder" => Some("Current order: {0}, adjust?"),
-        "prompt.pickN" => Some("Position {0}"),
-        "done.segments" => Some("Segments: {0}"),
-        "done.coins" => Some("Coins: {0}"),
-        "done.refresh" => Some("Refresh: {0}s"),
-        "done.length" => Some("Length: {0}"),
-        "done.text" => Some("Text: {0}"),
-        "done.order" => Some("Order: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Chinese — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_zh(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 配置段落 ({0}/{1})"),
-        "step.reorderN" => Some("2/3 排列顺序 ({0}/{1})"),
-        "msg.missingDeps" => Some("缺少必要依赖: {0}"),
-        "msg.installDeps" => Some("请先安装: brew install {0}"),
-        "prompt.currentOrder" => Some("当前顺序: {0}，要调整吗？"),
-        "prompt.pickN" => Some("第 {0} 个段落"),
-        "done.segments" => Some("段落: {0}"),
-        "done.coins" => Some("币种={0}"),
-        "done.refresh" => Some("刷新={0}s"),
-        "done.length" => Some("长度={0}"),
-        "done.text" => Some("文字={0}"),
-        "done.order" => Some("顺序: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Japanese — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_ja(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 設定 ({0}/{1})"),
-        "step.reorderN" => Some("2/3 並べ替え ({0}/{1})"),
-        "msg.missingDeps" => Some("依存関係が不足: {0}"),
-        "msg.installDeps" => Some("インストール: brew install {0}"),
-        "prompt.currentOrder" => Some("現在の順序: {0}、変更しますか？"),
-        "prompt.pickN" => Some("{0}番目を選択"),
-        "done.segments" => Some("セグメント: {0}"),
-        "done.coins" => Some("コイン: {0}"),
-        "done.refresh" => Some("更新: {0}秒"),
-        "done.length" => Some("長さ: {0}"),
-        "done.text" => Some("テキスト: {0}"),
-        "done.order" => Some("順序: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Korean — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_ko(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 설정 ({0}/{1})"),
-        "step.reorderN" => Some("2/3 순서 변경 ({0}/{1})"),
-        "msg.missingDeps" => Some("누락된 의존성: {0}"),
-        "msg.installDeps" => Some("설치: brew install {0}"),
-        "prompt.currentOrder" => Some("현재 순서: {0}, 변경하시겠습니까?"),
-        "prompt.pickN" => Some("{0}번째 선택"),
-        "done.segments" => Some("세그먼트: {0}"),
-        "done.coins" => Some("코인: {0}"),
-        "done.refresh" => Some("새로고침: {0}초"),
-        "done.length" => Some("길이: {0}"),
-        "done.text" => Some("텍스트: {0}"),
-        "done.order" => Some("순서: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Spanish — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_es(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 Configurar ({0}/{1})"),
-        "step.reorderN" => Some("2/3 Reordenar ({0}/{1})"),
-        "msg.missingDeps" => Some("Dependencias faltantes: {0}"),
-        "msg.installDeps" => Some("Instalar: brew install {0}"),
-        "prompt.currentOrder" => Some("Orden actual: {0}, ¿ajustar?"),
-        "prompt.pickN" => Some("Posición {0}"),
-        "done.segments" => Some("Segmentos: {0}"),
-        "done.coins" => Some("Monedas: {0}"),
-        "done.refresh" => Some("Actualizar: {0}s"),
-        "done.length" => Some("Longitud: {0}"),
-        "done.text" => Some("Texto: {0}"),
-        "done.order" => Some("Orden: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Portuguese — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_pt(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 Configurar ({0}/{1})"),
-        "step.reorderN" => Some("2/3 Reordenar ({0}/{1})"),
-        "msg.missingDeps" => Some("Dependências ausentes: {0}"),
-        "msg.installDeps" => Some("Instalar: brew install {0}"),
-        "prompt.currentOrder" => Some("Ordem atual: {0}, ajustar?"),
-        "prompt.pickN" => Some("Posição {0}"),
-        "done.segments" => Some("Segmentos: {0}"),
-        "done.coins" => Some("Moedas: {0}"),
-        "done.refresh" => Some("Atualização: {0}s"),
-        "done.length" => Some("Comprimento: {0}"),
-        "done.text" => Some("Texto: {0}"),
-        "done.order" => Some("Ordem: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Russian — dynamic (template) keys
-// ---------------------------------------------------------------------------
-
-fn tf_ru(key: &str) -> Option<&'static str> {
-    match key {
-        "step.configSegment" => Some("2/3 Настройка ({0}/{1})"),
-        "step.reorderN" => Some("2/3 Порядок ({0}/{1})"),
-        "msg.missingDeps" => Some("Отсутствуют зависимости: {0}"),
-        "msg.installDeps" => Some("Установить: brew install {0}"),
-        "prompt.currentOrder" => Some("Текущий порядок: {0}, изменить?"),
-        "prompt.pickN" => Some("Позиция {0}"),
-        "done.segments" => Some("Сегменты: {0}"),
-        "done.coins" => Some("Монеты: {0}"),
-        "done.refresh" => Some("Обновление: {0}с"),
-        "done.length" => Some("Длина: {0}"),
-        "done.text" => Some("Текст: {0}"),
-        "done.order" => Some("Порядок: {0}"),
-        _ => None,
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Leak the key string to produce a &'static str fallback.
 // This is intentional: unknown keys are rare, and the leaked memory is tiny.
 // ---------------------------------------------------------------------------
@@ -1083,15 +895,27 @@ fn key_to_static(key: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Mutex, MutexGuard};
+
+    // The active language lives in a global `AtomicU8`, so tests that mutate it
+    // race under cargo's parallel executor. Every lang-touching test acquires
+    // this lock to serialize them. Poison is recovered because each test resets
+    // LANG on the way out anyway.
+    static LANG_LOCK: Mutex<()> = Mutex::new(());
+    fn lang_guard() -> MutexGuard<'static, ()> {
+        LANG_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
 
     #[test]
     fn test_default_lang_is_en() {
+        let _lang = lang_guard();
         set_lang("en");
         assert_eq!(get_lang(), "en");
     }
 
     #[test]
     fn test_set_lang_zh() {
+        let _lang = lang_guard();
         set_lang("zh");
         assert_eq!(get_lang(), "zh");
         set_lang("en");
@@ -1099,6 +923,7 @@ mod tests {
 
     #[test]
     fn test_set_lang_unknown_falls_back_to_en() {
+        let _lang = lang_guard();
         set_lang("fr");
         assert_eq!(get_lang(), "en");
         set_lang("en");
@@ -1106,6 +931,7 @@ mod tests {
 
     #[test]
     fn test_t_en() {
+        let _lang = lang_guard();
         set_lang("en");
         assert_eq!(t("step.start"), "Start");
         assert_eq!(t("seg.model"), "Model");
@@ -1114,6 +940,7 @@ mod tests {
 
     #[test]
     fn test_t_zh() {
+        let _lang = lang_guard();
         set_lang("zh");
         assert_eq!(t("step.start"), "开始");
         assert_eq!(t("seg.model"), "模型");
@@ -1122,36 +949,9 @@ mod tests {
 
     #[test]
     fn test_t_unknown_key_returns_key() {
+        let _lang = lang_guard();
         set_lang("en");
         assert_eq!(t("nonexistent.key"), "nonexistent.key");
-    }
-
-    #[test]
-    fn test_tf_en() {
-        set_lang("en");
-        assert_eq!(tf("step.configSegment", &["2", "4"]), "2/3 Configure (2/4)");
-        assert_eq!(tf("done.refresh", &["30"]), "Refresh: 30s");
-        assert_eq!(
-            tf("msg.missingDeps", &["jq perl"]),
-            "Missing dependencies: jq perl"
-        );
-    }
-
-    #[test]
-    fn test_tf_zh() {
-        set_lang("zh");
-        assert_eq!(
-            tf("step.configSegment", &["2", "4"]),
-            "2/3 配置段落 (2/4)"
-        );
-        assert_eq!(tf("done.refresh", &["30"]), "刷新=30s");
-        set_lang("en");
-    }
-
-    #[test]
-    fn test_tf_unknown_key_returns_key() {
-        set_lang("en");
-        assert_eq!(tf("nonexistent.key", &["arg"]), "nonexistent.key");
     }
 
     #[test]
@@ -1161,6 +961,7 @@ mod tests {
 
     #[test]
     fn test_lang_prompt_starts_with_language() {
+        let _lang = lang_guard();
         for &lang in SUPPORTED_LANGS {
             set_lang(lang);
             let prompt = t("lang.prompt");
@@ -1176,6 +977,7 @@ mod tests {
 
     #[test]
     fn test_style_names_same_in_all() {
+        let _lang = lang_guard();
         let style_keys = &[
             "style.cyan",
             "style.green",
@@ -1205,16 +1007,10 @@ mod tests {
 
     #[test]
     fn test_t_ja() {
+        let _lang = lang_guard();
         set_lang("ja");
         assert_eq!(t("step.start"), "開始");
         assert_eq!(t("seg.model"), "モデル");
-        set_lang("en");
-    }
-
-    #[test]
-    fn test_tf_ja() {
-        set_lang("ja");
-        assert_eq!(tf("step.configSegment", &["2", "4"]), "2/3 設定 (2/4)");
         set_lang("en");
     }
 }

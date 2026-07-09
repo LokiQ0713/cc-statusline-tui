@@ -1,8 +1,8 @@
 //! Configuration structs, JSON persistence, and path helpers.
 //!
 //! Defines the `Config` type (top-level) and per-segment structs (`ModelSegment`,
-//! `CostSegment`, `UsageSegment`, `PathSegment`, `GitSegment`, `ContextSegment`,
-//! `CryptoSegment`) that map to `~/.claude/statusline/config.json`.
+//! `CostSegment`, `UsageSegment`, `PathSegment`, `GitSegment`, `ContextSegment`)
+//! that map to `~/.claude/statusline/config.json`.
 //!
 //! Key functions:
 //! - `statusline_dir()` / `config_path()` / `bin_path()` / `log_path()` -- path helpers
@@ -15,17 +15,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-
-// ---------------------------------------------------------------------------
-// Crypto list constant
-// ---------------------------------------------------------------------------
-
-pub const CRYPTO_LIST: &[(&str, &str, &str)] = &[
-    ("BTC", "Bitcoin", "BTCUSDT"),
-    ("ETH", "Ethereum", "ETHUSDT"),
-    ("BNB", "BNB", "BNBUSDT"),
-    ("SOL", "Solana", "SOLUSDT"),
-];
 
 // ---------------------------------------------------------------------------
 // Path helpers
@@ -184,26 +173,6 @@ impl Default for ContextSegment {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CryptoSegment {
-    pub enabled: bool,
-    pub style: String,
-    pub refresh_interval: u64,
-    pub coins: Vec<String>,
-}
-
-impl Default for CryptoSegment {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            style: "green".into(),
-            refresh_interval: 60,
-            coins: vec!["BTC".into()],
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Segments container
 // ---------------------------------------------------------------------------
@@ -218,7 +187,6 @@ pub struct Segments {
     pub path: PathSegment,
     pub git: GitSegment,
     pub context: ContextSegment,
-    pub crypto: CryptoSegment,
 }
 
 // ---------------------------------------------------------------------------
@@ -269,15 +237,19 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             lang: String::new(),
-            rows: Vec::new(),
-            order: vec![
-                "model".into(),
-                "cost".into(),
-                "path".into(),
-                "git".into(),
-                "context".into(),
-                "crypto".into(),
+            // Fixed layout — not user-reorderable.
+            // Row 1: model  cost  path  context
+            // Row 2: usage (5h)  usage_7d (7d)
+            rows: vec![
+                vec![
+                    "model".into(),
+                    "cost".into(),
+                    "path".into(),
+                    "context".into(),
+                ],
+                vec!["usage".into(), "usage_7d".into()],
             ],
+            order: Vec::new(),
             order_row2: Vec::new(),
             segments: Segments::default(),
         }

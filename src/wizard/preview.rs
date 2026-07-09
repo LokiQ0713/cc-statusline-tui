@@ -1,99 +1,49 @@
-//! Live statusline preview renderer using hardcoded sample data.
+//! Statusline preview renderer using hardcoded sample data.
 //!
 //! Generates a preview string that looks like the real statusline but uses
 //! fixed sample values (e.g., model="Opus4.6", cost="$0.42", usage=25%).
-//! This lets the user see how their configuration will look before saving.
+//! This lets the user see the fixed layout before saving.
 //!
-//! Key functions:
-//! - `render_preview(config)` -- returns the full preview string
-//! - `update_preview_in_place(config, row)` -- redraws the preview line
-//!   at a specific terminal row without moving the main cursor
-//!
-//! Called from the wizard on every config change (live preview via callbacks).
+//! Key function:
+//! - `render_sample_segment(key, config, now)` -- render one segment with
+//!   sample data; used by the wizard's confirmation preview.
 
 use crate::config::Config;
 use crate::styles::{format_bar, format_colored};
+#[cfg(test)]
 use std::time::SystemTime;
-
-// ── Sample data ──────────────────────────────────────────────────────
-
-const SAMPLE_PRICES: &[(&str, u64)] = &[
-    ("BTC", 73748),
-    ("ETH", 2265),
-    ("BNB", 612),
-    ("SOL", 178),
-];
 
 // ── Public API ───────────────────────────────────────────────────────
 
-/// Render a preview statusline bar using sample data for the given config.
-///
-/// Iterates through `config.effective_rows()`, rendering each enabled segment
-/// with hard-coded sample values so the user can see what the statusline will
-/// look like before committing to the configuration. Multiple rows are joined
-/// with newlines.
+/// Render each effective row to a joined preview string using sample data,
+/// skipping rows whose segments all render to nothing. One entry per non-empty
+/// row. Shared by the wizard's confirmation screen and `render_preview`.
+pub fn render_rows(config: &Config, now: u64) -> Vec<String> {
+    config
+        .effective_rows()
+        .iter()
+        .filter_map(|row_keys| {
+            let parts: Vec<String> = row_keys
+                .iter()
+                .filter_map(|key| render_sample_segment(key, config, now))
+                .collect();
+            if parts.is_empty() {
+                None
+            } else {
+                Some(parts.join(" "))
+            }
+        })
+        .collect()
+}
+
+/// Render a full multi-row preview string (rows joined by newlines).
 #[cfg(test)]
 pub fn render_preview(config: &Config) -> String {
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-
-    let rows = config.effective_rows();
-    let row_strings: Vec<String> = rows.iter()
-        .filter_map(|row_keys| {
-            let parts: Vec<String> = row_keys.iter()
-                .filter_map(|key| render_sample_segment(key, config, now))
-                .collect();
-            if parts.is_empty() { None } else { Some(parts.join(" ")) }
-        })
-        .collect();
-
-    row_strings.join("\n")
-}
-
-/// Update the preview lines in-place at the given terminal row without
-/// moving the main cursor. Renders up to 3 rows of preview content.
-pub fn update_preview_in_place(config: &Config, preview_row: u16) {
-    let now = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-
-    let label = crate::i18n::t("msg.preview");
-    let rows = config.effective_rows();
-
-    // Render up to 3 preview rows
-    for i in 0..3u16 {
-        let row_idx = i as usize;
-        let row_content = if row_idx < rows.len() {
-            let parts: Vec<String> = rows[row_idx]
-                .iter()
-                .filter_map(|key| render_sample_segment(key, config, now))
-                .collect();
-            if parts.is_empty() {
-                String::new()
-            } else {
-                parts.join(" ")
-            }
-        } else {
-            String::new()
-        };
-
-        let text = if !row_content.is_empty() {
-            if i == 0 {
-                format!("  \x1b[2m{}\x1b[0m {}", label, row_content)
-            } else {
-                // Align with the label width using spaces
-                let padding = " ".repeat(label.len());
-                format!("  \x1b[2m{}\x1b[0m {}", padding, row_content)
-            }
-        } else {
-            String::new() // empty line clears the row
-        };
-
-        super::terminal::print_at(preview_row + i, &text);
-    }
+    render_rows(config, now).join("\n")
 }
 
 // ── Per-segment sample renderers ─────────────────────────────────────
@@ -105,10 +55,12 @@ pub fn render_sample_segment(key: &str, config: &Config, now: u64) -> Option<Str
             if !seg.enabled {
                 return None;
             }
+            // Sample includes a reasoning-effort suffix ("high") to show how
+            // effort appears when the model reports one.
             let text = if seg.icon.is_empty() {
-                "Opus4.6".to_string()
+                "Opus4.6 high".to_string()
             } else {
-                format!("{} Opus4.6", seg.icon)
+                format!("{} Opus4.6 high", seg.icon)
             };
             Some(format_colored(&seg.style, &text, now))
         }
@@ -226,31 +178,9 @@ pub fn render_sample_segment(key: &str, config: &Config, now: u64) -> Option<Str
                 Some(parts.join(" "))
             }
         }
-        "crypto" => {
-            let seg = &config.segments.crypto;
-            if !seg.enabled {
-                return None;
-            }
-            let display: Vec<String> = seg
-                .coins
-                .iter()
-                .filter_map(|coin| {
-                    SAMPLE_PRICES
-                        .iter()
-                        .find(|(sym, _)| *sym == coin.as_str())
-                        .map(|(sym, price)| format!("{}:${}", sym, price))
-                })
-                .collect();
-            if display.is_empty() {
-                None
-            } else {
-                Some(format_colored(&seg.style, &display.join(" "), now))
-            }
-        }
         _ => None,
     }
 }
-
 // ── Tests ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -277,61 +207,37 @@ mod tests {
         out
     }
 
+    /// Every segment disabled, for isolating a single segment in a test.
+    fn all_disabled() -> Segments {
+        Segments {
+            model: ModelSegment { enabled: false, ..Default::default() },
+            cost: CostSegment { enabled: false, ..Default::default() },
+            usage: UsageSegment { enabled: false, ..Default::default() },
+            usage_7d: UsageSegment { enabled: false, ..Default::default() },
+            path: PathSegment { enabled: false, ..Default::default() },
+            git: GitSegment { enabled: false, ..Default::default() },
+            context: ContextSegment { enabled: false, ..Default::default() },
+        }
+    }
+
     #[test]
     fn test_render_preview_with_defaults() {
         let config = Config::default();
         let result = render_preview(&config);
         assert!(!result.is_empty());
-        // Should contain ANSI escape codes
         assert!(result.contains("\x1b["));
     }
 
     #[test]
     fn test_render_preview_all_disabled() {
         let config = Config {
-            order: vec![
+            rows: vec![vec![
                 "model".into(),
                 "cost".into(),
-                "usage".into(),
                 "path".into(),
-                "git".into(),
                 "context".into(),
-                "crypto".into(),
-            ],
-            segments: Segments {
-                model: ModelSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                context: ContextSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                crypto: CryptoSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-            },
+            ]],
+            segments: all_disabled(),
             ..Default::default()
         };
         let result = render_preview(&config);
@@ -339,164 +245,52 @@ mod tests {
     }
 
     #[test]
-    fn test_render_preview_model_only() {
+    fn test_render_preview_model_with_effort() {
         let config = Config {
-            order: vec!["model".into()],
+            rows: vec![vec!["model".into()]],
             segments: Segments {
-                model: ModelSegment {
-                    enabled: true,
-                    style: "cyan".into(),
-                    icon: "".into(),
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                context: ContextSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                crypto: CryptoSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
+                model: ModelSegment { enabled: true, style: "cyan".into(), icon: "".into() },
+                ..all_disabled()
             },
             ..Default::default()
         };
-        let result = render_preview(&config);
-        let visible = strip_ansi(&result);
+        let visible = strip_ansi(&render_preview(&config));
         assert!(visible.contains("Opus4.6"));
+        assert!(visible.contains("high"));
     }
 
     #[test]
     fn test_render_preview_context_bar() {
         let config = Config {
-            order: vec!["context".into()],
+            rows: vec![vec!["context".into()]],
             segments: Segments {
-                model: ModelSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
                 context: ContextSegment {
                     enabled: true,
-                    style: "ultrathink-gradient".into(),
+                    style: "semantic".into(),
                     bar_char: "shade".into(),
                     bar_length: 12,
                     show_bar: true,
                     show_percent: true,
                     show_size: true,
                 },
-                crypto: CryptoSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
+                ..all_disabled()
             },
             ..Default::default()
         };
-        let result = render_preview(&config);
-        assert!(!result.is_empty());
-        let visible = strip_ansi(&result);
+        let visible = strip_ansi(&render_preview(&config));
         assert!(visible.contains("60%"));
         assert!(visible.contains("600K/1M"));
     }
 
     #[test]
-    fn test_render_preview_usage_parts() {
-        // bar only
+    fn test_render_preview_usage_no_bar() {
+        // Fixed-layout 5h usage: percent + reset, no progress bar.
         let config = Config {
-            order: vec!["usage".into()],
-            segments: Segments {
-                model: ModelSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage: UsageSegment {
-                    enabled: true,
-                    style: "semantic".into(),
-                    bar_char: "shade".into(),
-                    bar_length: 8,
-                    show_bar: true,
-                    show_percent: false,
-                    show_reset: false,
-                    label: String::new(),
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                context: ContextSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                crypto: CryptoSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-            },
-            ..Default::default()
-        };
-        let result = render_preview(&config);
-        assert!(!result.is_empty());
-        let visible = strip_ansi(&result);
-        // Should have bar chars but not percent or reset
-        assert!(!visible.contains("25%"));
-        assert!(!visible.contains("1h43m"));
-
-        // percent + reset only (no bar)
-        let config2 = Config {
-            order: vec!["usage".into()],
+            rows: vec![vec!["usage".into()]],
             segments: Segments {
                 usage: UsageSegment {
                     enabled: true,
-                    style: "green".into(),
+                    style: "white".into(),
                     bar_char: "shade".into(),
                     bar_length: 8,
                     show_bar: false,
@@ -504,135 +298,13 @@ mod tests {
                     show_reset: true,
                     label: String::new(),
                 },
-                model: ModelSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                context: ContextSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                crypto: CryptoSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
+                ..all_disabled()
             },
             ..Default::default()
         };
-        let result2 = render_preview(&config2);
-        let visible2 = strip_ansi(&result2);
-        assert!(visible2.contains("25%"));
-        assert!(visible2.contains("1h43m"));
-    }
-
-    #[test]
-    fn test_render_preview_crypto_coins() {
-        // Single coin (BTC)
-        let config = Config {
-            order: vec!["crypto".into()],
-            segments: Segments {
-                model: ModelSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                context: ContextSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                crypto: CryptoSegment {
-                    enabled: true,
-                    style: "green".into(),
-                    refresh_interval: 60,
-                    coins: vec!["BTC".into()],
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-            },
-            ..Default::default()
-        };
-        let result = render_preview(&config);
-        let visible = strip_ansi(&result);
-        assert_eq!(visible, "BTC:$73748");
-
-        // Multiple coins
-        let config2 = Config {
-            order: vec!["crypto".into()],
-            segments: Segments {
-                model: ModelSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                cost: CostSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                usage: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                path: PathSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                git: GitSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                context: ContextSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-                crypto: CryptoSegment {
-                    enabled: true,
-                    style: "green".into(),
-                    refresh_interval: 60,
-                    coins: vec!["BTC".into(), "ETH".into(), "SOL".into()],
-                },
-                usage_7d: UsageSegment {
-                    enabled: false,
-                    ..Default::default()
-                },
-            },
-            ..Default::default()
-        };
-        let result2 = render_preview(&config2);
-        let visible2 = strip_ansi(&result2);
-        assert!(visible2.contains("BTC:$73748"));
-        assert!(visible2.contains("ETH:$2265"));
-        assert!(visible2.contains("SOL:$178"));
+        let visible = strip_ansi(&render_preview(&config));
+        assert!(visible.contains("5h:"));
+        assert!(visible.contains("25%"));
+        assert!(visible.contains("1h43m"));
     }
 }

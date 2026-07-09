@@ -7,12 +7,11 @@
 //! Note: crossterm 0.28 on macOS fires both Press and Release events for
 //! each physical key press. `read_key()` filters to Press only.
 //!
-//! Used by all wizard components (`select`, `multiselect`, `confirm`, `spinner`).
+//! Used by all wizard components (`select`, `confirm`, `spinner`).
 
 use crossterm::{
-    cursor, execute, queue,
+    cursor, execute,
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
-    style::Print,
     terminal,
 };
 use std::io::{Write, stdout};
@@ -44,21 +43,6 @@ pub fn move_to(row: u16, col: u16) {
 #[allow(dead_code)]
 pub fn clear_line() {
     execute!(stdout(), terminal::Clear(terminal::ClearType::CurrentLine)).unwrap();
-}
-
-/// Print text at a specific row without moving the cursor permanently.
-pub fn print_at(row: u16, text: &str) {
-    let mut out = stdout();
-    queue!(
-        out,
-        cursor::SavePosition,
-        cursor::MoveTo(0, row),
-        terminal::Clear(terminal::ClearType::CurrentLine),
-        Print(text),
-        cursor::RestorePosition
-    )
-    .unwrap();
-    out.flush().unwrap();
 }
 
 pub fn hide_cursor() {

@@ -13,28 +13,25 @@ Interactive CLI tool to configure the Claude Code statusline.
 
 - Language: Rust (2021 edition)
 - Entry: `src/main.rs`
-- Dependencies: `serde` / `serde_json` (config serialization), `crossterm` (terminal UI), `ureq` (HTTP), `dirs` (home directory), `chrono` (time parsing), `tempfile` (tests)
+- Dependencies: `serde` / `serde_json` (config serialization), `crossterm` (terminal UI), `dirs` (home directory), `chrono` (time parsing), `tempfile` (tests)
 - System deps: none (was jq/perl/curl in the JS version)
 
 ## File Structure
 
 - `src/main.rs` — Entry point, dispatches `--render` vs wizard
 - `src/config.rs` — Config structs, load/save, path helpers
-- `src/i18n.rs` — i18n (en/zh/ja/ko/es/pt/ru), static + template translations
-- `src/styles.rs` — ANSI color codes, rainbow/gradient rendering, bar formatting
-- `src/render.rs` — Render pipeline: reads stdin JSON, outputs formatted statusline
-- `src/cache.rs` — Stale-while-revalidate cache for crypto prices and usage data
+- `src/i18n.rs` — i18n (en/zh/ja/ko/es/pt/ru), static translations
+- `src/styles.rs` — ANSI color codes, rainbow/gradient rendering, bar formatting (incl. traffic-light gradient)
+- `src/render.rs` — Render pipeline: reads stdin JSON, outputs formatted statusline (model appends `effort.level`)
 - `src/log.rs` — Error logging to `~/.claude/statusline/statusline.log`
 - `src/install.rs` — Save config, copy binary, update settings.json
-- `src/wizard/` — Interactive TUI wizard
-  - `mod.rs` — Wizard state machine (4-step flow)
+- `src/wizard/` — Interactive TUI wizard (fixed layout — language → preview → confirm → install)
+  - `mod.rs` — Fixed-layout installer flow
   - `terminal.rs` — Terminal control (raw mode, cursor, key reading)
   - `select.rs` — Single-select component
-  - `multiselect.rs` — Multi-select component
   - `confirm.rs` — Yes/No confirmation
   - `spinner.rs` — Loading spinner
-  - `preview.rs` — Live preview rendering
-  - `step_progress.rs` — Step progress indicator
+  - `preview.rs` — Preview rendering (sample data)
 
 ## npm Distribution (esbuild-style platform packages)
 
@@ -54,7 +51,6 @@ Interactive CLI tool to configure the Claude Code statusline.
   - `config.json` — User configuration
   - `bin` — Compiled binary (copied during install)
   - `statusline.log` — Error log
-- `/tmp/claude-statusline-*` — Cache files (crypto prices, usage data)
 
 ## Development
 

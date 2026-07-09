@@ -90,18 +90,39 @@ pub fn bar_chars(name: &str) -> BarChars {
     }
 }
 
+// ── Interpolation helper ─────────────────────────────────────────────────────
+
+/// Linearly interpolate one 8-bit color channel from `a` to `b` at `t` in [0,1].
+fn lerp_u8(a: u8, b: u8, t: f64) -> u8 {
+    (a as f64 + (b as f64 - a as f64) * t).round() as u8
+}
+
 // ── Semantic color helper ────────────────────────────────────────────────────
 
-/// Returns the ANSI color code for a "traffic-light" semantic bar:
-/// high ratio (>= 0.60) = soft-red, medium (>= 0.30) = soft-yellow, low = soft-green.
-pub fn semantic_color(ratio: f64) -> &'static str {
-    if ratio >= 0.60 {
-        color_code("soft-red")
-    } else if ratio >= 0.30 {
-        color_code("soft-yellow")
+/// Returns a truecolor ANSI code for a "traffic-light" semantic bar,
+/// smoothly interpolated green → yellow → red as `ratio` goes 0.0 → 0.5 → 1.0.
+///
+/// The interpolation is piecewise-linear in RGB: `ratio` below 0.5 blends
+/// green→yellow, at/above 0.5 blends yellow→red. Control points match the
+/// soft-green / soft-yellow / soft-red palette so the gradient stays on-brand.
+pub fn semantic_color(ratio: f64) -> String {
+    // Control points (R, G, B) — same hues as soft-green/yellow/red.
+    const GREEN: (u8, u8, u8) = (95, 175, 95); // 256-color 71
+    const YELLOW: (u8, u8, u8) = (215, 175, 95); // 256-color 179
+    const RED: (u8, u8, u8) = (215, 95, 95); // 256-color 167
+
+    let r = ratio.clamp(0.0, 1.0);
+    let (from, to, t) = if r < 0.5 {
+        (GREEN, YELLOW, r / 0.5)
     } else {
-        color_code("soft-green")
-    }
+        (YELLOW, RED, (r - 0.5) / 0.5)
+    };
+    format!(
+        "\x1b[38;2;{};{};{}m",
+        lerp_u8(from.0, to.0, t),
+        lerp_u8(from.1, to.1, t),
+        lerp_u8(from.2, to.2, t)
+    )
 }
 
 // ── Rendering helpers ────────────────────────────────────────────────────────
@@ -186,15 +207,15 @@ pub fn format_bar(
             let (r1, g1, b1) = palette[idx];
             let (r2, g2, b2) = palette[(idx + 1).min(6)];
 
-            let r = (r1 as f64 + (r2 as f64 - r1 as f64) * frac).round() as u8;
-            let g = (g1 as f64 + (g2 as f64 - g1 as f64) * frac).round() as u8;
-            let b = (b1 as f64 + (b2 as f64 - b1 as f64) * frac).round() as u8;
+            let r = lerp_u8(r1, r2, frac);
+            let g = lerp_u8(g1, g2, frac);
+            let b = lerp_u8(b1, b2, frac);
 
             let _ = write!(out, "\x1b[38;2;{};{};{}m{}", r, g, b, bc.filled);
         }
     } else if style == "semantic" {
         let color = semantic_color(ratio);
-        out.push_str(color);
+        out.push_str(&color);
         for _ in 0..filled {
             out.push(bc.filled);
         }
@@ -302,27 +323,38 @@ mod tests {
 
     #[test]
     fn test_format_bar_semantic() {
-        // ratio 0.2 → soft-green
+        // Each ratio's filled portion uses the interpolated traffic-light color.
         let low = format_bar("semantic", "full-block", 10, 0.2, 0);
-        assert!(low.contains(color_code("soft-green")));
+        assert!(low.contains(&semantic_color(0.2)));
 
-        // ratio 0.4 → soft-yellow
-        let mid = format_bar("semantic", "full-block", 10, 0.4, 0);
-        assert!(mid.contains(color_code("soft-yellow")));
+        let mid = format_bar("semantic", "full-block", 10, 0.5, 0);
+        assert!(mid.contains(&semantic_color(0.5)));
 
-        // ratio 0.9 → soft-red
         let high = format_bar("semantic", "full-block", 10, 0.9, 0);
-        assert!(high.contains(color_code("soft-red")));
+        assert!(high.contains(&semantic_color(0.9)));
     }
 
     #[test]
-    fn test_semantic_color() {
-        assert_eq!(semantic_color(0.0), color_code("soft-green"));
-        assert_eq!(semantic_color(0.29), color_code("soft-green"));
-        assert_eq!(semantic_color(0.30), color_code("soft-yellow"));
-        assert_eq!(semantic_color(0.59), color_code("soft-yellow"));
-        assert_eq!(semantic_color(0.60), color_code("soft-red"));
-        assert_eq!(semantic_color(1.0), color_code("soft-red"));
+    fn test_semantic_color_endpoints() {
+        // 0% = green, 50% = yellow, 100% = red (the control points).
+        assert_eq!(semantic_color(0.0), "\x1b[38;2;95;175;95m");
+        assert_eq!(semantic_color(0.5), "\x1b[38;2;215;175;95m");
+        assert_eq!(semantic_color(1.0), "\x1b[38;2;215;95;95m");
+    }
+
+    #[test]
+    fn test_semantic_color_interpolates() {
+        // 25% = midpoint green→yellow: R 95→215 halfway = 155, G 175, B 95.
+        assert_eq!(semantic_color(0.25), "\x1b[38;2;155;175;95m");
+        // 75% = midpoint yellow→red: R 215, G 175→95 halfway = 135, B 95.
+        assert_eq!(semantic_color(0.75), "\x1b[38;2;215;135;95m");
+    }
+
+    #[test]
+    fn test_semantic_color_clamps() {
+        // Out-of-range ratios clamp to the endpoints.
+        assert_eq!(semantic_color(-1.0), semantic_color(0.0));
+        assert_eq!(semantic_color(2.0), semantic_color(1.0));
     }
 
     #[test]
