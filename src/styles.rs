@@ -10,8 +10,8 @@
 //! - `format_bar(style, bar_char, length, ratio, timestamp)` -- render a progress bar
 //! - `format_rainbow(text, offset, shimmer)` -- per-character true-color rainbow
 //!
-//! This is the hot path -- called from `render::run()` and `wizard::preview`
-//! on every statusline refresh or preview update.
+//! This is the hot path -- called from `render::run()` on every statusline
+//! refresh.
 
 // ── Color codes (ANSI escape sequences) ──────────────────────────────────────
 

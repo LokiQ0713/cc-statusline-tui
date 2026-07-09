@@ -1,8 +1,8 @@
 //! Statusline render pipeline -- the performance-critical hot path.
 //!
 //! Invoked by Claude Code on every status refresh via `--render`. Reads
-//! JSON from stdin (model, workspace, context window, cost), loads the
-//! user's config, and outputs a single ANSI-colored statusline string.
+//! JSON from stdin (model, workspace, context window, cost), applies the
+//! fixed layout, and outputs a single ANSI-colored statusline string.
 //!
 //! Key functions:
 //! - `run()` -- entry point: read stdin, iterate config.order, print segments
@@ -254,7 +254,8 @@ pub fn format_size(n: u64) -> String {
 // ─── Render pipeline ────────────────────────────────────────────────
 
 pub fn run() {
-    let config = crate::config::load_config();
+    // The layout is fixed; render always uses the built-in default.
+    let config = crate::config::Config::default();
     let input = read_stdin();
     let home = dirs::home_dir()
         .map(|p| p.to_string_lossy().to_string())

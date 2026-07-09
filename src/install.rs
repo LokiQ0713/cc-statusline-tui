@@ -1,12 +1,11 @@
-//! Installation logic: save config, copy binary, update Claude Code settings.
+//! Installation logic: copy the binary, update Claude Code settings.
 //!
-//! Called at the end of the wizard after the user confirms. Performs three
-//! steps atomically:
-//! 1. Save `Config` to `~/.claude/statusline/config.json`
-//! 2. Copy the running binary to `~/.claude/statusline/bin`
-//! 3. Insert/update `statusLine` in `~/.claude/settings.json`
+//! The statusline layout is fixed, so there is nothing to configure. Running
+//! the binary with no arguments installs it in two steps:
+//! 1. Copy the running binary to `~/.claude/statusline/bin`
+//! 2. Insert/update `statusLine` in `~/.claude/settings.json`
 //!
-//! Key function: `save_and_apply(config)` -- orchestrates all three steps.
+//! Key function: `run()` -- the no-interaction install entry point.
 //!
 //! After installation, Claude Code picks up the new statusline command
 //! on its next refresh cycle.
@@ -14,13 +13,39 @@
 use std::fs;
 use std::path::Path;
 
-/// Save config, copy the running binary into `~/.claude/statusline/bin`,
-/// and update `~/.claude/settings.json` so Claude uses it.
-pub fn save_and_apply(config: &crate::config::Config) -> Result<(), String> {
-    // 1. Save config
-    crate::config::save_config(config).map_err(|e| e.to_string())?;
+/// No-interaction install entry point (binary invoked with no arguments).
+pub fn run() {
+    // Preflight: Claude Code must be installed.
+    let has_claude = dirs::home_dir()
+        .map(|h| h.join(".claude").exists())
+        .unwrap_or(false);
+    if !has_claude {
+        fail("Claude Code not found (~/.claude does not exist). Install it first: https://claude.ai/code");
+    }
 
-    // 2. Copy current binary to ~/.claude/statusline/bin
+    match apply() {
+        Ok(()) => {
+            println!(
+                "\u{2713} Statusline installed. Restart Claude Code (or start a new session) to see it."
+            );
+        }
+        Err(e) => fail(&format!("Install failed: {e}")),
+    }
+}
+
+/// Print a user-facing error (with the required AI-analysis hint) and exit.
+fn fail(msg: &str) -> ! {
+    eprintln!("{msg}");
+    eprintln!();
+    eprintln!("Tip: Copy this error to AI for analysis");
+    eprintln!("See https://github.com/LokiQ0713/cc-statusline-tui#troubleshooting");
+    std::process::exit(1);
+}
+
+/// Copy the running binary into `~/.claude/statusline/bin` and register it as
+/// the `statusLine` command in `~/.claude/settings.json`.
+fn apply() -> Result<(), String> {
+    // 1. Copy current binary to ~/.claude/statusline/bin
     let self_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let target = crate::config::bin_path();
     if let Some(parent) = target.parent() {
@@ -37,7 +62,7 @@ pub fn save_and_apply(config: &crate::config::Config) -> Result<(), String> {
         }
     }
 
-    // 3. Update ~/.claude/settings.json
+    // 2. Update ~/.claude/settings.json
     update_settings()?;
 
     Ok(())

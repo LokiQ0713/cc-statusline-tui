@@ -13,8 +13,8 @@ cargo build
 ## Common Commands
 
 ```bash
-cargo run               # Launch the interactive wizard
-cargo run -- --render   # Test the render pipeline (reads JSON from stdin)
+cargo run               # Install into ~/.claude (writes settings.json — not a dry run)
+cargo run -- --render   # Test the render pipeline (reads JSON from stdin) — safe
 cargo test              # Run all tests
 cargo clippy -- -D warnings  # Lint (warnings are errors)
 ```
@@ -41,8 +41,8 @@ echo '{"tool_name":"Read","model":"claude-sonnet-4-20250514"}' | cargo run -- --
 Include:
 
 - Operating system and version
-- Install method (npm / cargo / brew)
-- Tool version (`cc-statusline --version`)
+- Install method (cargo / brew)
+- Tool version (crate version installed)
 - Steps to reproduce
 - Expected vs actual behavior
 - Relevant logs from `~/.claude/statusline/statusline.log`

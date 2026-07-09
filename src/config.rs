@@ -1,19 +1,13 @@
-//! Configuration structs, JSON persistence, and path helpers.
+//! Layout structs and path helpers.
 //!
-//! Defines the `Config` type (top-level) and per-segment structs (`ModelSegment`,
-//! `CostSegment`, `UsageSegment`, `PathSegment`, `GitSegment`, `ContextSegment`)
-//! that map to `~/.claude/statusline/config.json`.
+//! Defines the `Config` type (the fixed layout) and per-segment structs
+//! (`ModelSegment`, `CostSegment`, `UsageSegment`, `PathSegment`, `GitSegment`,
+//! `ContextSegment`). The layout is not user-configurable: `Config::default()`
+//! is the single source of truth, consumed directly by the render pipeline.
 //!
-//! Key functions:
-//! - `statusline_dir()` / `config_path()` / `bin_path()` / `log_path()` -- path helpers
-//! - `load_config()` -- deserialize config from disk (falls back to defaults)
-//! - `save_config()` -- serialize config to disk
-//!
-//! Used by every other module: the wizard writes configs, the render pipeline
-//! reads them, and the install step references path helpers.
+//! Path helpers: `statusline_dir()` / `bin_path()` / `log_path()`.
 
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 
 // ---------------------------------------------------------------------------
@@ -26,11 +20,6 @@ pub fn statusline_dir() -> PathBuf {
         .expect("cannot determine home directory")
         .join(".claude")
         .join("statusline")
-}
-
-/// Returns `~/.claude/statusline/config.json`
-pub fn config_path() -> PathBuf {
-    statusline_dir().join("config.json")
 }
 
 /// Returns `~/.claude/statusline/bin/cc-statusline`
@@ -195,8 +184,6 @@ pub struct Segments {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    pub lang: String,
-
     /// Primary layout: each inner Vec is one row of segments.
     /// e.g. `[["model","cost","context"], ["usage","usage_7d"]]`
     #[serde(default)]
@@ -236,7 +223,6 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            lang: String::new(),
             // Fixed layout — not user-reorderable.
             // Row 1: model  cost  path  context
             // Row 2: usage (5h)  usage_7d (7d)
@@ -256,26 +242,3 @@ impl Default for Config {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Load / Save
-// ---------------------------------------------------------------------------
-
-/// Load config from `config_path()`. Returns `Config::default()` on any error.
-pub fn load_config() -> Config {
-    let path = config_path();
-    match fs::read_to_string(&path) {
-        Ok(contents) => serde_json::from_str(&contents).unwrap_or_default(),
-        Err(_) => Config::default(),
-    }
-}
-
-/// Save config to `config_path()`. Creates the parent directory if needed.
-pub fn save_config(config: &Config) -> std::io::Result<()> {
-    let path = config_path();
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let json = serde_json::to_string_pretty(config)
-        .map_err(std::io::Error::other)?;
-    fs::write(&path, json)
-}
