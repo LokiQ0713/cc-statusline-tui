@@ -34,7 +34,7 @@ Then restart Claude Code (or start a new session).
 A fixed two-row statusline — no prompts, no config file:
 
 ```
-🔥 Opus4.8 high  $1.20  ~/project  ▓▓▓▓▓▓▓░░░ 60% 600K/1M
+🔥 Opus4.8 high  $1.20  ~/project  main*  ▓▓▓▓▓▓▓░░░ 60% 600K/1M
 5h: 47% 2h30m   7d: 28% 3d5h
 ```
 
@@ -43,6 +43,7 @@ A fixed two-row statusline — no prompts, no config file:
 | Model + effort | `🔥 Opus4.8 high` | Model name, plus reasoning effort (`low`…`max`) when the model reports one |
 | Cost | `$0.42` | Session cost so far |
 | Path | `~/project` | Current directory |
+| Git | `main* ↑2` | Branch, `*` when dirty, `↑`/`↓` commits vs upstream (hidden outside a repo) |
 | Context | `▓▓▓▓░░░ 60% 600K/1M` | Context window: traffic-light bar + % + size |
 | Usage 5h / 7d | `5h: 47% 2h30m` | Rate-limit windows: % used + reset countdown |
 

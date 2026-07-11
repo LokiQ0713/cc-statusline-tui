@@ -224,13 +224,14 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             // Fixed layout — not user-reorderable.
-            // Row 1: model  cost  path  context
+            // Row 1: model  cost  path  git  context
             // Row 2: usage (5h)  usage_7d (7d)
             rows: vec![
                 vec![
                     "model".into(),
                     "cost".into(),
                     "path".into(),
+                    "git".into(),
                     "context".into(),
                 ],
                 vec!["usage".into(), "usage_7d".into()],

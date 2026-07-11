@@ -24,7 +24,7 @@ Two modes, selected by args:
 - no args — install: copy the binary to `~/.claude/statusline/bin/` and set `statusLine` in `~/.claude/settings.json`. No prompts; the layout is fixed.
 
 Fixed layout:
-- Row 1: `model · cost · path · context`
+- Row 1: `model · cost · path · git · context`
 - Row 2: `5h · 7d` usage windows (no progress bars)
 
 ## File Structure
