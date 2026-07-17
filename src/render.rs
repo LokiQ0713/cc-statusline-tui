@@ -32,6 +32,10 @@ pub struct StdinInput {
     pub rate_limits: StdinRateLimits,
     #[serde(default)]
     pub effort: StdinEffort,
+    /// Top-level session id emitted by Claude Code (UUID). Present in the
+    /// render stdin JSON; used to display the current session on row 2.
+    #[serde(default)]
+    pub session_id: Option<String>,
 }
 
 /// Reasoning effort reported by Claude Code. Present only when the current
@@ -107,15 +111,23 @@ pub struct StdinCost {
 pub fn read_stdin() -> StdinInput {
     let mut buf = String::new();
     std::io::stdin().read_to_string(&mut buf).unwrap_or_default();
+    parse_input(&buf)
+}
 
+/// Parse the stdin buffer into `StdinInput`, tolerating malformed input.
+///
+/// Fast path: direct deserialization. If a single field has an unexpected
+/// type the whole parse fails, so fall back to per-field extraction — one bad
+/// field must not take down the entire statusline.
+fn parse_input(buf: &str) -> StdinInput {
     // Try direct deserialization first (fast path)
-    if let Ok(input) = serde_json::from_str::<StdinInput>(&buf) {
+    if let Ok(input) = serde_json::from_str::<StdinInput>(buf) {
         return input;
     }
 
     // Fallback: parse as Value, extract each segment individually so a
     // single field's type mismatch doesn't take down the entire statusline.
-    let val: serde_json::Value = match serde_json::from_str(&buf) {
+    let val: serde_json::Value = match serde_json::from_str(buf) {
         Ok(v) => v,
         Err(_) => return StdinInput::default(),
     };
@@ -135,6 +147,13 @@ pub fn read_stdin() -> StdinInput {
             .unwrap_or_default(),
         effort: serde_json::from_value(val.get("effort").cloned().unwrap_or_default())
             .unwrap_or_default(),
+        // session_id is a top-level scalar, not a nested object: extract it
+        // directly as a string. A missing key, JSON null, or a non-string
+        // value all yield `None` (so the session segment simply won't render).
+        session_id: val
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .map(String::from),
     }
 }
 
@@ -327,6 +346,11 @@ fn render_segment(
             let seg = &config.segments.usage_7d;
             if !seg.enabled { return None; }
             render_usage_window(seg, input.rate_limits.seven_day.as_ref(), "7d", now)
+        }
+        "session" => {
+            let seg = &config.segments.session;
+            if !seg.enabled { return None; }
+            render_session(seg, input, now)
         }
         _ => None,
     }
@@ -565,6 +589,20 @@ fn format_countdown(resets_at: &str, now: u64) -> Option<String> {
     } else {
         Some(format!("{}m", mins))
     }
+}
+
+/// Render the session id (row 2, after the usage windows).
+///
+/// Displays the full session id verbatim — it exists to be copied into
+/// `claude --resume`, so it is never truncated. Returns `None` when the id is
+/// absent or an empty string, so nothing is rendered in that case.
+fn render_session(
+    seg: &crate::config::SessionSegment,
+    input: &StdinInput,
+    now: u64,
+) -> Option<String> {
+    let session_id = input.session_id.as_deref().filter(|s| !s.is_empty())?;
+    Some(crate::styles::format_colored(&seg.style, session_id, now))
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────
@@ -1315,5 +1353,144 @@ mod tests {
         assert_eq!(rows[0], &["model", "cost"]);
         assert_eq!(rows[1], &["path", "git"]);
         assert_eq!(rows[2], &["usage", "usage_7d"]);
+    }
+
+    // ─── Session id (row 2) tests ────────────────────────────────────
+
+    /// C1: a non-empty top-level `session_id` string is parsed (fast path).
+    #[test]
+    fn test_session_id_present_fast_path() {
+        let input = parse_input(r#"{ "session_id": "abc-123" }"#);
+        assert_eq!(input.session_id.as_deref(), Some("abc-123"));
+    }
+
+    /// C2: a missing `session_id` key parses to `None`.
+    #[test]
+    fn test_session_id_missing_is_none() {
+        let input = parse_input("{}");
+        assert!(input.session_id.is_none());
+    }
+
+    /// C2: an explicit JSON `null` parses to `None`.
+    #[test]
+    fn test_session_id_null_is_none() {
+        let input = parse_input(r#"{ "session_id": null }"#);
+        assert!(input.session_id.is_none());
+    }
+
+    /// C2 (type mismatch): a non-string `session_id` breaks the fast path, and
+    /// the fallback yields `None` for it while still recovering other fields.
+    #[test]
+    fn test_session_id_wrong_type_is_none_others_survive() {
+        let json = r#"{ "model": { "id": "claude-opus-4-6" }, "session_id": 12345 }"#;
+        // The wrong type takes down the fast path...
+        assert!(serde_json::from_str::<StdinInput>(json).is_err());
+        // ...but parse_input recovers gracefully.
+        let input = parse_input(json);
+        assert!(input.session_id.is_none());
+        assert_eq!(input.model.id, "claude-opus-4-6");
+    }
+
+    /// C3: when another field's bad type breaks the fast path, the per-field
+    /// fallback must still extract `session_id` (and the other good fields).
+    #[test]
+    fn test_session_id_fallback_extracted_when_other_field_bad() {
+        let json = r#"{
+            "model": { "id": "claude-opus-4-6" },
+            "session_id": "sess-xyz",
+            "rate_limits": "invalid_type"
+        }"#;
+        // rate_limits has the wrong type → fast path fails.
+        assert!(serde_json::from_str::<StdinInput>(json).is_err());
+        // Fallback path must still surface session_id.
+        let input = parse_input(json);
+        assert_eq!(input.session_id.as_deref(), Some("sess-xyz"));
+        assert_eq!(input.model.id, "claude-opus-4-6");
+    }
+
+    /// C1 + A1: the full session id is rendered verbatim (never truncated).
+    #[test]
+    fn test_render_session_renders_full_id() {
+        let seg = crate::config::SessionSegment {
+            enabled: true,
+            style: "white".into(),
+        };
+        let full_id = "0199a2b3-4c5d-6e7f-8a9b-0c1d2e3f4a5b";
+        let input = StdinInput {
+            session_id: Some(full_id.into()),
+            ..Default::default()
+        };
+        let result = render_session(&seg, &input, 0).unwrap();
+        let visible = strip_ansi(&result);
+        assert_eq!(visible, full_id);
+        // Colored output (row-2 white style).
+        assert!(result.contains("\x1b["));
+    }
+
+    /// C2: an absent session id renders nothing.
+    #[test]
+    fn test_render_session_none_when_absent() {
+        let seg = crate::config::SessionSegment::default();
+        let input = StdinInput {
+            session_id: None,
+            ..Default::default()
+        };
+        assert!(render_session(&seg, &input, 0).is_none());
+    }
+
+    /// C2: an empty-string session id renders nothing (no empty placeholder).
+    #[test]
+    fn test_render_session_none_when_empty() {
+        let seg = crate::config::SessionSegment::default();
+        let input = StdinInput {
+            session_id: Some(String::new()),
+            ..Default::default()
+        };
+        assert!(render_session(&seg, &input, 0).is_none());
+    }
+
+    /// C1: the dispatcher routes "session" to the session renderer.
+    #[test]
+    fn test_render_segment_session_via_dispatcher() {
+        let config = crate::config::Config::default();
+        let input = StdinInput {
+            session_id: Some("sess-abc".into()),
+            ..Default::default()
+        };
+        let result = render_segment("session", &config, &input, "", 0).unwrap();
+        assert_eq!(strip_ansi(&result), "sess-abc");
+    }
+
+    /// C2: a disabled session segment renders nothing even with a valid id.
+    #[test]
+    fn test_render_segment_session_disabled_returns_none() {
+        let mut config = crate::config::Config::default();
+        config.segments.session.enabled = false;
+        let input = StdinInput {
+            session_id: Some("sess-abc".into()),
+            ..Default::default()
+        };
+        assert!(render_segment("session", &config, &input, "", 0).is_none());
+    }
+
+    /// C4 + C1 (position): row 1 is unchanged; row 2 keeps the usage segments
+    /// in order and appends "session" at the end.
+    #[test]
+    fn test_default_layout_row2_appends_session() {
+        let config = crate::config::Config::default();
+        let rows = config.effective_rows();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0], &["model", "cost", "path", "git", "context"]);
+        assert_eq!(rows[1], &["usage", "usage_7d", "session"]);
+    }
+
+    /// C1: the session segment renders from the real Claude Code stdin JSON
+    /// (which carries a top-level `session_id`).
+    #[test]
+    fn test_render_segment_session_from_real_json() {
+        let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
+        let config = crate::config::Config::default();
+        let result = render_segment("session", &config, &input, "", 0).unwrap();
+        assert_eq!(strip_ansi(&result), "test-session");
     }
 }

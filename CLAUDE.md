@@ -25,7 +25,7 @@ Two modes, selected by args:
 
 Fixed layout:
 - Row 1: `model · cost · path · git · context`
-- Row 2: `5h · 7d` usage windows (no progress bars)
+- Row 2: `5h · 7d` usage windows + `session id` (no progress bars)
 
 ## File Structure
 
@@ -97,3 +97,4 @@ See https://github.com/LokiQ0713/cc-statusline-tui#troubleshooting
 - No config file: `render` uses `Config::default()` directly; the layout is fixed in code.
 - Model segment appends the reasoning effort (`effort.level` from the stdin JSON) when the model reports one; absent otherwise.
 - Context bar uses the `semantic` style: a green→yellow→red traffic-light gradient interpolated in RGB (green at 0%, yellow at 50%, red at 100%).
+- Session segment appends the top-level `session_id` (from the stdin JSON) at the end of row 2, rendered in full for copy-into-`claude --resume`; hidden when `session_id` is missing, empty, or the wrong type.

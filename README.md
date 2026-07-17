@@ -35,7 +35,7 @@ A fixed two-row statusline — no prompts, no config file:
 
 ```
 🔥 Opus4.8 high  $1.20  ~/project  main*  ▓▓▓▓▓▓▓░░░ 60% 600K/1M
-5h: 47% 2h30m   7d: 28% 3d5h
+5h: 47% 2h30m   7d: 28% 3d5h   a1b2c3d4-5e6f-7890-abcd-ef1234567890
 ```
 
 | Segment | Looks Like | What It Does |
@@ -46,6 +46,7 @@ A fixed two-row statusline — no prompts, no config file:
 | Git | `main* ↑2` | Branch, `*` when dirty, `↑`/`↓` commits vs upstream (hidden outside a repo) |
 | Context | `▓▓▓▓░░░ 60% 600K/1M` | Context window: traffic-light bar + % + size |
 | Usage 5h / 7d | `5h: 47% 2h30m` | Rate-limit windows: % used + reset countdown |
+| Session | `a1b2c3d4-…` | Full session id — copy it into `claude --resume` (hidden when absent) |
 
 The context bar is a smooth **green → yellow → red** gradient (green at 0%, yellow at 50%, red at 100%).
 

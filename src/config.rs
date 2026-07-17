@@ -162,6 +162,21 @@ impl Default for ContextSegment {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionSegment {
+    pub enabled: bool,
+    pub style: String,
+}
+
+impl Default for SessionSegment {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            style: "white".into(),
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Segments container
 // ---------------------------------------------------------------------------
@@ -176,6 +191,7 @@ pub struct Segments {
     pub path: PathSegment,
     pub git: GitSegment,
     pub context: ContextSegment,
+    pub session: SessionSegment,
 }
 
 // ---------------------------------------------------------------------------
@@ -225,7 +241,7 @@ impl Default for Config {
         Self {
             // Fixed layout — not user-reorderable.
             // Row 1: model  cost  path  git  context
-            // Row 2: usage (5h)  usage_7d (7d)
+            // Row 2: usage (5h)  usage_7d (7d)  session
             rows: vec![
                 vec![
                     "model".into(),
@@ -234,7 +250,7 @@ impl Default for Config {
                     "git".into(),
                     "context".into(),
                 ],
-                vec!["usage".into(), "usage_7d".into()],
+                vec!["usage".into(), "usage_7d".into(), "session".into()],
             ],
             order: Vec::new(),
             order_row2: Vec::new(),
