@@ -172,7 +172,7 @@ impl Default for SessionSegment {
     fn default() -> Self {
         Self {
             enabled: true,
-            style: "white".into(),
+            style: "gray".into(),
         }
     }
 }

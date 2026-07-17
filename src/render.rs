@@ -591,18 +591,25 @@ fn format_countdown(resets_at: &str, now: u64) -> Option<String> {
     }
 }
 
-/// Render the session id (row 2, after the usage windows).
+/// Number of leading characters of the session id to display. A UUID's first
+/// hyphen-delimited group is 8 chars (e.g. `569b37c4`) — enough to
+/// eyeball-distinguish sessions without the full id eating the whole row.
+const SESSION_ID_DISPLAY_LEN: usize = 8;
+
+/// Render a short prefix of the session id (row 2, after the usage windows).
 ///
-/// Displays the full session id verbatim — it exists to be copied into
-/// `claude --resume`, so it is never truncated. Returns `None` when the id is
-/// absent or an empty string, so nothing is rendered in that case.
+/// Shows only the first [`SESSION_ID_DISPLAY_LEN`] characters (a UUID's leading
+/// group); the full id is long and rarely needs reading in full. Returns
+/// `None` when the id is absent or an empty string, so nothing is rendered in
+/// that case.
 fn render_session(
     seg: &crate::config::SessionSegment,
     input: &StdinInput,
     now: u64,
 ) -> Option<String> {
     let session_id = input.session_id.as_deref().filter(|s| !s.is_empty())?;
-    Some(crate::styles::format_colored(&seg.style, session_id, now))
+    let short: String = session_id.chars().take(SESSION_ID_DISPLAY_LEN).collect();
+    Some(crate::styles::format_colored(&seg.style, &short, now))
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────
@@ -1408,12 +1415,12 @@ mod tests {
         assert_eq!(input.model.id, "claude-opus-4-6");
     }
 
-    /// C1 + A1: the full session id is rendered verbatim (never truncated).
+    /// C1 + A1: only the leading 8-char prefix (UUID's first group) is shown.
     #[test]
-    fn test_render_session_renders_full_id() {
+    fn test_render_session_truncates_to_prefix() {
         let seg = crate::config::SessionSegment {
             enabled: true,
-            style: "white".into(),
+            style: "gray".into(),
         };
         let full_id = "0199a2b3-4c5d-6e7f-8a9b-0c1d2e3f4a5b";
         let input = StdinInput {
@@ -1422,9 +1429,21 @@ mod tests {
         };
         let result = render_session(&seg, &input, 0).unwrap();
         let visible = strip_ansi(&result);
-        assert_eq!(visible, full_id);
-        // Colored output (row-2 white style).
+        assert_eq!(visible, "0199a2b3");
+        // Colored output (row-2 gray style).
         assert!(result.contains("\x1b["));
+    }
+
+    /// A short id (fewer than the display length) renders in full, unpadded.
+    #[test]
+    fn test_render_session_short_id_rendered_whole() {
+        let seg = crate::config::SessionSegment::default();
+        let input = StdinInput {
+            session_id: Some("abc12".into()),
+            ..Default::default()
+        };
+        let visible = strip_ansi(&render_session(&seg, &input, 0).unwrap());
+        assert_eq!(visible, "abc12");
     }
 
     /// C2: an absent session id renders nothing.
@@ -1485,12 +1504,13 @@ mod tests {
     }
 
     /// C1: the session segment renders from the real Claude Code stdin JSON
-    /// (which carries a top-level `session_id`).
+    /// (which carries a top-level `session_id`), truncated to its 8-char prefix.
     #[test]
     fn test_render_segment_session_from_real_json() {
         let input: StdinInput = serde_json::from_str(REAL_CLAUDE_CODE_JSON).unwrap();
         let config = crate::config::Config::default();
         let result = render_segment("session", &config, &input, "", 0).unwrap();
-        assert_eq!(strip_ansi(&result), "test-session");
+        // REAL_CLAUDE_CODE_JSON's session_id is "test-session" → first 8 chars.
+        assert_eq!(strip_ansi(&result), "test-ses");
     }
 }

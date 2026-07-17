@@ -24,6 +24,7 @@ pub fn color_code(style: &str) -> &'static str {
         "magenta" => "\x1b[0;35m",
         "red" => "\x1b[0;31m",
         "white" => "\x1b[0;37m",
+        "gray" => "\x1b[38;5;250m",
         "soft-green" => "\x1b[38;5;71m",
         "soft-yellow" => "\x1b[38;5;179m",
         "soft-red" => "\x1b[38;5;167m",
@@ -259,6 +260,7 @@ mod tests {
         assert_eq!(color_code("green"), "\x1b[0;32m");
         assert_eq!(color_code("blue"), "\x1b[1;34m");
         assert_eq!(color_code("soft-green"), "\x1b[38;5;71m");
+        assert_eq!(color_code("gray"), "\x1b[38;5;250m");
         assert_eq!(color_code("orange"), "\x1b[38;5;208m");
         assert_eq!(color_code("purple"), "\x1b[38;5;141m");
     }
