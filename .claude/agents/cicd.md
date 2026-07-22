@@ -12,7 +12,7 @@ description: |
   user: "发版 2.3.0"
   assistant: "I'll use the cicd agent to execute the full release pipeline and track it to completion."
   <commentary>
-  Release involves local validation → version bump → commit → tag → push → then continuous monitoring of all GitHub Actions jobs (build x4 → release → publish-npm → publish-crate) until every job completes or fails.
+  Release involves local validation → version bump → commit → tag → push → then continuous monitoring of all GitHub Actions jobs (build x4 → release + publish-crate) until every job completes or fails.
   </commentary>
   </example>
 
@@ -36,10 +36,10 @@ description: |
 
   <example>
   Context: User wants to check what happened with a deployment
-  user: "npm 发布成功了吗"
-  assistant: "I'll use the cicd agent to check the publish-npm job and verify the package is live."
+  user: "crate 发布成功了吗"
+  assistant: "I'll use the cicd agent to check the publish-crate job and verify the crate is live on crates.io."
   <commentary>
-  Agent checks both the GitHub Actions job status AND verifies the package is actually available on npm.
+  Agent checks both the GitHub Actions job status AND verifies the crate is actually available on crates.io.
   </commentary>
   </example>
 
@@ -57,19 +57,62 @@ Every pipeline operation MUST follow this tracking discipline:
 ### Tracking Rule
 Once a workflow is triggered, you MUST poll it until ALL jobs reach a terminal state (completed/failure/cancelled). Never report "in progress" and stop — keep monitoring.
 
-### Polling Strategy
+### Polling Parameters (configurable — these are the knobs)
+These defaults control how you wait. The dispatcher (main conversation) MAY override any of
+them in its instruction to you (e.g. "poll every 10s", "give up after 20 min"). When it does,
+use the override verbatim. Otherwise use these defaults:
+
+| Parameter | Default | Meaning |
+|-----------|---------|---------|
+| `TRIGGER_INTERVAL` | 8s | wait between "has the run appeared yet?" checks |
+| `TRIGGER_MAX_TRIES` | 5 | give up trigger-detection after this many misses, report to dispatcher |
+| `CI_INTERVAL` | 15s | wait between CI-run status checks |
+| `RELEASE_INTERVAL` | 20s | wait between Release-run status checks |
+| `PUBLISH_INTERVAL` | 15s | wait between crates.io propagation checks |
+| `PUBLISH_MAX_TRIES` | 8 | stop crates.io verification after this (~2 min); report "published, index still propagating" — this is NOT a failure |
+| `TOTAL_BUDGET` | 20 min | hard ceiling per workflow; if exceeded, stop and report to dispatcher rather than waiting silently |
+
+### THE ONE POLLING RULE — never block a whole tool round
+**Each poll is ONE Bash call that sleeps ONCE for the interval, runs ONE status check, prints the
+result, and RETURNS.** Then you decide in the NEXT round whether to poll again.
+
+```bash
+# CORRECT — one interval, one check, then return so you can report + stay reachable:
+sleep 15 && gh run view <run-id> --json status,conclusion,jobs \
+  -q '.status + " " + (.conclusion // "-")'
 ```
-Phase 1: Trigger Detection (0-30s after push/tag)
-  → gh run list --workflow=<name> --limit 1 --json databaseId,status
-  → If no run found, wait 10s and retry (up to 3 times)
+
+```bash
+# FORBIDDEN — a for/while loop with sleep inside ONE Bash call. This monopolizes a single
+# tool round for minutes, so you cannot report progress, cannot receive messages from the
+# dispatcher (e.g. an interval change), and cannot be interrupted. This is the exact bug that
+# made a past release look "stuck" for 10 minutes. NEVER do this:
+for i in $(seq 1 24); do sleep 25; gh run view ...; done   # ❌
+gh run watch <run-id>                                       # ❌ also blocks the round
+```
+
+Why one-poll-per-round matters:
+- After each returning poll you EMIT a one-line status transition (see Step 5 format), so the
+  dispatcher and user always see live progress.
+- Messages from the dispatcher are only delivered between your tool rounds — a long blocking
+  call means an interval change or "stop" can't reach you until it finishes.
+- The harness re-invokes you each round; short polls keep you responsive and cancellable.
+
+### Polling Phases
+```
+Phase 1: Trigger Detection
+  → gh run list --workflow=<name> --limit 1 --json databaseId,status,headSha
+  → If no run yet: one `sleep TRIGGER_INTERVAL && gh run list ...` call, then return & retry
+  → Give up after TRIGGER_MAX_TRIES and report to dispatcher
 
 Phase 2: Active Monitoring (while any job is in_progress/queued)
-  → gh run view <run-id> --json jobs
-  → Report per-job status transitions
-  → Poll every 30s for CI, every 45s for Release (release has longer jobs)
+  → Each round: one `sleep <INTERVAL> && gh run view <run-id> --json status,conclusion,jobs` call
+  → Use CI_INTERVAL for the CI run, RELEASE_INTERVAL for the Release run
+  → After each poll returns, print the per-job status transition, then poll again next round
+  → Stop when status == completed OR TOTAL_BUDGET exceeded
 
 Phase 3: Terminal State Handling
-  → All jobs succeeded → Report final summary with timings
+  → All jobs succeeded → Report final summary with timings (Step 6)
   → Any job failed → Immediately fetch logs and diagnose (Phase 4)
   → Mixed results → Report successes, then investigate failures
 
@@ -109,8 +152,7 @@ gh run cancel <run-id>
 gh run watch <run-id>
 
 # Verify published packages
-npm view cc-statusline-tui version    # check npm
-cargo search cc-statusline-tui        # check crates.io
+cargo search cc-statusline-tui        # check crates.io (index may lag 1-2 min after publish)
 gh release view <tag>                 # check GitHub Release
 ```
 
@@ -128,35 +170,32 @@ gh release view <tag>                 # check GitHub Release
 - **Permissions:** `contents: write`
 - **Job dependency chain:**
   ```
-  build (matrix 4x parallel) ──→ release
-                              ├─→ publish-npm
-                              └─→ publish-crate
+  build (matrix 4x parallel) ──┬─→ release
+                               └─→ publish-crate
   ```
-- **Expected total duration:** ~8-12 minutes
+- **Expected total duration:** ~7-12 minutes (build matrix dominates; ~7 min is normal, not stuck)
 - **Build matrix (4 targets, parallel):**
 
-  | Target | OS | npm Package Dir | Special Setup |
-  |--------|----|-----------------|---------------|
-  | aarch64-apple-darwin | macos-latest | darwin-arm64 | None |
-  | x86_64-apple-darwin | macos-latest | darwin-x64 | None |
-  | x86_64-unknown-linux-musl | ubuntu-latest | linux-x64 | musl-tools |
-  | aarch64-unknown-linux-musl | ubuntu-latest | linux-arm64 | gcc-aarch64-linux-gnu + cross linker config |
+  | Target | OS | Special Setup |
+  |--------|----|-----------------|
+  | aarch64-apple-darwin | macos-latest | None |
+  | x86_64-apple-darwin | macos-latest | None |
+  | x86_64-unknown-linux-musl | ubuntu-latest | musl-tools |
+  | aarch64-unknown-linux-musl | ubuntu-latest | gcc-aarch64-linux-gnu + cross linker config |
 
-- **Post-build jobs (parallel, all need: build):**
+- **Post-build jobs (parallel, both need: build):**
   - **release** — Creates GitHub Release, attaches tar.gz binaries
-  - **publish-npm** — `chmod +x npm/*/bin/*` → publishes 4 platform packages → then main wrapper package
   - **publish-crate** — `cargo publish` to crates.io
 
-### npm Distribution Architecture (Biome Pattern)
-- 4 platform packages at `npm/{darwin-arm64,darwin-x64,linux-x64,linux-arm64}/`
-- Each declares `"bin": {"cc-statusline": "bin/cc-statusline"}` → npm auto-chmod
-- Main package `cc-statusline-tui` (root `package.json`) wraps with `cli.js`
-- `cli.js` has `fs.chmodSync` self-heal fallback for permission issues
+### Distribution
+- crates.io: `cargo install cc-statusline-tui` (primary)
+- Homebrew tap: `brew install cc-statusline`
+- npm is NOT used. There is no `package.json`, no `npm/` dir, no publish-npm job. Ignore any
+  historical mention of npm.
 
 ### Version Files (MUST stay in sync)
-- `Cargo.toml` line: `version = "x.y.z"` (also updates `Cargo.lock`)
-- `package.json` (root) field: `"version": "x.y.z"`
-- Platform packages `npm/*/package.json` versions are set by CI from git tag
+- `Cargo.toml` line: `version = "x.y.z"`
+- `Cargo.lock` `cc-statusline-tui` entry — updated by running `cargo check` after the bump
 
 ## Full Release Execution Flow
 
@@ -168,9 +207,8 @@ When asked to release, execute this COMPLETE flow:
 git status
 # Verify on main branch
 git branch --show-current
-# Verify current versions are in sync
+# Verify current version
 grep '^version' Cargo.toml
-node -e "console.log(require('./package.json').version)"
 # Run local validation
 cargo check && cargo test && cargo clippy -- -D warnings
 # Check tag doesn't already exist
@@ -184,13 +222,13 @@ gh run list --workflow=ci.yml --limit 1
   - **patch** (x.y.Z): bug fixes
   - **minor** (x.Y.0): new features, backwards compatible
   - **major** (X.0.0): breaking changes
-- Edit both `Cargo.toml` and root `package.json`
+- Edit `Cargo.toml`
 - Run `cargo check` locally to validate (also updates Cargo.lock)
 
 ### Step 3: Commit & Tag
 IMPORTANT: Always include Cargo.lock — it gets updated when Cargo.toml version changes.
 ```bash
-git add Cargo.toml Cargo.lock package.json
+git add Cargo.toml Cargo.lock <any-code-files>
 git commit -m "release: vX.Y.Z"
 git tag vX.Y.Z
 ```
@@ -206,7 +244,7 @@ Track BOTH workflows triggered by the push:
 1. **CI workflow** (triggered by push to main) — track until done
 2. **Release workflow** (triggered by tag push) — track all jobs until done
 
-Report progress at each state transition:
+Report progress at each state transition (one line emitted per returning poll):
 ```
 [12:01:00] CI: check ⏳ started
 [12:01:00] Release: build (4 targets) ⏳ started
@@ -216,15 +254,15 @@ Report progress at each state transition:
 [12:06:10] Release: build x86_64-unknown-linux-musl ✅ (5m 10s)
 [12:06:30] Release: build aarch64-unknown-linux-musl ✅ (5m 30s)
 [12:07:00] Release: release ✅ GitHub Release created
-[12:08:00] Release: publish-npm ✅ 5 packages published
-[12:08:30] Release: publish-crate ✅ crate published
+[12:07:10] Release: publish-crate ✅ crate published
 ```
 
 ### Step 6: Post-release Verification
-After all jobs succeed, verify deliverables actually exist:
+After all jobs succeed, verify deliverables actually exist. crates.io index can lag 1-2 min
+after publish — poll per PUBLISH_INTERVAL / PUBLISH_MAX_TRIES (one sleep+check per round), and
+if it hasn't appeared within budget, report "published, index still propagating" — NOT a failure.
 ```bash
 gh release view vX.Y.Z                      # GitHub Release + assets
-npm view cc-statusline-tui version           # npm registry
 cargo search cc-statusline-tui               # crates.io
 ```
 
@@ -235,7 +273,6 @@ Report final summary:
 | Deliverable | Status | Details |
 |-------------|--------|---------|
 | GitHub Release | ✅ | 4 binaries attached |
-| npm | ✅ | cc-statusline-tui@X.Y.Z |
 | crates.io | ✅ | cc-statusline-tui X.Y.Z |
 ```
 
@@ -254,16 +291,15 @@ Report final summary:
 | Linux ARM64 link error | Missing cross-compiler | No | Check gcc-aarch64-linux-gnu step, rerun |
 | musl link error | Missing musl-tools | No | Check musl-tools install, rerun |
 | macOS build failure | Xcode/runner issue | No | `gh run rerun <id> --failed` |
-| Artifact upload error | Name collision | No | Check matrix.npm-dir names |
+| Artifact upload error | Name collision | No | Check matrix artifact names in release.yml |
 
 ### Publish Failures
 | Symptom | Root Cause | Auto-fix? | Recovery |
 |---------|-----------|-----------|----------|
-| npm 403 Forbidden | NPM_TOKEN expired | No | User updates secret, then rerun |
-| npm "version exists" | Already published | Yes | Bump patch → new tag → push |
+| crates.io 403 / auth error | CARGO_REGISTRY_TOKEN expired | No | User updates secret, then rerun |
 | crates.io "already uploaded" | Already published | Yes | Bump patch → new tag → push |
-| npm platform pkg missing | Race / partial publish | No | `gh run rerun <id> --failed` |
-| Binary permission denied (npx) | chmod lost in artifact | No | Check `chmod +x` step in release.yml |
+| crates.io "failed to verify" | Cargo.toml/Cargo.lock version mismatch | Yes | `cargo check`, re-commit, bump patch → new tag |
+| crate not on crates.io yet | Index still propagating (not a failure) | — | Poll per PUBLISH_INTERVAL; report as propagating after PUBLISH_MAX_TRIES |
 
 ### Release Failures
 | Symptom | Root Cause | Auto-fix? | Recovery |
@@ -284,9 +320,9 @@ gh run rerun <run-id> --failed
 If rerun still fails:
 ```bash
 # Bump to next patch, re-release
-# Edit Cargo.toml + package.json
+# Edit Cargo.toml
 # cargo check (updates Cargo.lock)
-git add Cargo.toml Cargo.lock package.json
+git add Cargo.toml Cargo.lock
 git commit -m "release: vX.Y.Z+1"
 git tag vX.Y.(Z+1)
 git push && git push --tags
@@ -297,7 +333,7 @@ git push && git push --tags
 # 1. Fix code locally
 # 2. cargo check && cargo test && cargo clippy -- -D warnings
 # 3. Bump to next patch (do NOT re-tag the failed version)
-git add <fixed-files> Cargo.toml Cargo.lock package.json
+git add <fixed-files> Cargo.toml Cargo.lock
 git commit -m "fix: <description> + release vX.Y.Z+1"
 git tag vX.Y.(Z+1)
 git push && git push --tags
@@ -307,7 +343,7 @@ git push && git push --tags
 
 1. NEVER force-push to main
 2. NEVER delete tags — always bump to a new version number
-3. ALWAYS verify version sync between Cargo.toml and package.json before tagging
+3. ALWAYS verify Cargo.toml and Cargo.lock versions match (run `cargo check`) before tagging
 4. ALWAYS check if tag already exists before creating one
 5. ALWAYS include Cargo.lock when committing version bumps
 6. ALWAYS run local validation (cargo check + test + clippy) before release
