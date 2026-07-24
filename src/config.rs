@@ -154,7 +154,7 @@ impl Default for ContextSegment {
             enabled: true,
             style: "semantic".into(),
             bar_char: "shade".into(),
-            bar_length: 16,
+            bar_length: 14,
             show_bar: true,
             show_percent: true,
             show_size: true,

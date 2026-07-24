@@ -102,7 +102,7 @@ fn lerp_u8(a: u8, b: u8, t: f64) -> u8 {
 
 /// Returns a truecolor ANSI code for a "traffic-light" semantic bar:
 /// solid green below 0.2, green → yellow over 0.2–0.5, yellow → red over
-/// 0.5–0.8, and solid red at/above 0.8.
+/// 0.5–0.7, and solid red at/above 0.7.
 ///
 /// The two middle segments are piecewise-linear in RGB; the outer plateaus
 /// keep "safe" and "critical" ranges visually stable. Control points match
@@ -119,8 +119,8 @@ pub fn semantic_color(ratio: f64) -> String {
         (GREEN, GREEN, 0.0)
     } else if r < 0.5 {
         (GREEN, YELLOW, (r - 0.2) / 0.3)
-    } else if r < 0.8 {
-        (YELLOW, RED, (r - 0.5) / 0.3)
+    } else if r < 0.7 {
+        (YELLOW, RED, (r - 0.5) / 0.2)
     } else {
         (RED, RED, 0.0)
     };
@@ -354,16 +354,16 @@ mod tests {
     fn test_semantic_color_interpolates() {
         // 35% = midpoint green→yellow (0.2–0.5): R 95→215 halfway = 155, G 175, B 95.
         assert_eq!(semantic_color(0.35), "\x1b[38;2;155;175;95m");
-        // 65% = midpoint yellow→red (0.5–0.8): R 215, G 175→95 halfway = 135, B 95.
-        assert_eq!(semantic_color(0.65), "\x1b[38;2;215;135;95m");
+        // 60% = midpoint yellow→red (0.5–0.7): R 215, G 175→95 halfway = 135, B 95.
+        assert_eq!(semantic_color(0.60), "\x1b[38;2;215;135;95m");
     }
 
     #[test]
     fn test_semantic_color_plateaus() {
-        // Below 20% stays solid green; at/above 80% stays solid red.
+        // Below 20% stays solid green; at/above 70% stays solid red.
         assert_eq!(semantic_color(0.1), semantic_color(0.0));
         assert_eq!(semantic_color(0.19), semantic_color(0.0));
-        assert_eq!(semantic_color(0.8), semantic_color(1.0));
+        assert_eq!(semantic_color(0.7), semantic_color(1.0));
         assert_eq!(semantic_color(0.9), semantic_color(1.0));
     }
 
